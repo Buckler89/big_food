@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "tracciabilità-alimnetare"
+version = "0.1.0"
+description = ""
+authors = ["Diego Droghini <diego.droghini@xtechnologies.it>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+streamlit = "^1.33.0"
+sqlalchemy = "^2.0.29"
+pymongo = "^4.7.0"
+pydantic = "^2.7.1"
+pydantic-mongo = "^2.3.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,11 @@
+services:
+
+  # service configuration for mongo database.
+  mongo:
+    # see https://hub.docker.com/_/mongo/
+    image: mongo:5.0.26
+    ports:
+     - "27017:27017"
+    volumes:
+      - ./mongo-local:/data/db
+
