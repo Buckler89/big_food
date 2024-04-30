@@ -125,7 +125,7 @@ class SemiFinishedProduct(B):
     quantity_unit: QuantityEnum
     is_finished: bool = False
 
-    ingredients: Dict[PydanticObjectId, int]  # list of name of RawMaterial or SemiFinishedProduct and relative used quantity
+    ingredients: Dict[PydanticObjectId, Union[int, float]]  # list of name of RawMaterial or SemiFinishedProduct and relative used quantity
 
     @model_validator(mode='after')
     def validate(self, values: Any):
@@ -194,7 +194,8 @@ def query_collection(constructor, collection, **kwargs) -> List[Union[Supplier, 
     for key, value in kwargs.items():
         if key not in constructor.__fields__:
             raise ValueError(f"Invalid field {key}")
-        query[key] = {"$regex": value, "$options": "i"}
+        if isinstance(value, str):
+            query[key] = {"$regex": value, "$options": "i"}
     results = collection.find(query)
     return [constructor(**r) for r in results]
     # results_with_id = list()
