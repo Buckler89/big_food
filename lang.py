@@ -309,8 +309,32 @@ t = {
         "ko": "공급 업체가 성공적으로 추가되었습니다",
         "zh": "供应商成功添加",
     },
+    "How many Raw Material?": {
+        "en": "How many Raw Material?",
+        "es": "¿Cuánta materia prima?",
+        "fr": "Combien de matières premières?",
+        "de": "Wie viele Rohstoffe?",
+        "it": "Quante materie prime?",
+        "pt": "Quantos materiais brutos?",
+        "ja": "原材料はいくつですか？",
+        "ko": "원자재는 몇 개입니까?",
+        "zh": "原材料有多少？",
+    },
+    "How many Semi-Finished Products?": {
+        "en": "How many Semi-Finished Products?",
+        "es": "¿Cuántos productos semielaborados?",
+        "fr": "Combien de produits semi-finis?",
+        "de": "Wie viele Halbfertigprodukte?",
+        "it": "Quanti prodotti semilavorati?",
+        "pt": "Quantos produtos semi-acabados?",
+        "ja": "半製品はいくつですか？",
+        "ko": "준설제는 몇 개입니까?",
+        "zh": "半成品有多少？",
+    },
+
 
 }
 def get_translations(lang_choice="en"):
-    trad = Translations(t, "it")
+    trad = Translations(t, lang_choice)
     return trad
+lang_choice = 'it'

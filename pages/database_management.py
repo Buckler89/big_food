@@ -12,7 +12,11 @@ from pandas.api.types import (
     is_object_dtype,
 )
 import pandas as pd
-
+import lang
+# Initialization
+trad = lang.get_translations(lang.lang_choice)
+if 'trad' not in st.session_state:
+    st.session_state['trad'] = trad
 trad = st.session_state['trad']
 
 def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -140,6 +144,9 @@ def main():
         raw_materials_id_to_name = {raw_material.id: raw_material.name for raw_material in raw_materials}
         raw_materials_name_to_id = {raw_material.name: raw_material.id for raw_material in raw_materials}
 
+        n_raw_material_ingr = st.slider(trad['How many Raw Material?'], min_value=1, max_value=20)
+        n_semi_finished_prod_ingr = st.slider(trad['How many Semi-Finished Products?'], min_value=1, max_value=20)
+
         with st.form(trad["Add Semi-Finished Product"]):
             name = st.text_input(trad["Name"])
             date = st.date_input(trad["Production Date"])
@@ -162,20 +169,53 @@ def main():
             batch_number = st.text_input(trad["batch number"])
             quantity = st.number_input(trad["Quantity"])
             quantity_unit = st.selectbox(trad["Unit"], models.QuantityEnum.__members__.keys(), index=None)
-            ingredients_a = st.multiselect(trad["Ingredients A"], list(raw_materials_id_to_name.values()), default=None,
-                                           key="ingredients_a")
-            ingredients_quantity_a = st.multiselect(trad["Ingredients Quantity"], [0] * len(ingredients_a),
-                                                    key="ingredients_quantity_a")
-            ingredients_b = st.multiselect(trad["Ingredients B"], list(semi_finished_products_as_ingredients_id_to_name.values()), default=None,
-                                           key="ingredients_b")
-            ingredients_quantity_b = st.multiselect(trad["Ingredients Quantity"], [0] * len(ingredients_b),
-                                                    key="ingredients_quantity_b")
+            # --------------------------------------------------------------
+            # ingredients_a = st.multiselect(trad["Ingredients A"], list(raw_materials_id_to_name.values()), default=None,
+            #                                key="ingredients_a")
+            # ingredients_quantity_a = st.multiselect(trad["Ingredients Quantity"], [0] * len(ingredients_a),
+            #                                         key="ingredients_quantity_a")
+            # ingredients_b = st.multiselect(trad["Ingredients B"], list(semi_finished_products_as_ingredients_id_to_name.values()), default=None,
+            #                                key="ingredients_b")
+            # ingredients_quantity_b = st.multiselect(trad["Ingredients Quantity"], [0] * len(ingredients_b),
+            #                                         key="ingredients_quantity_b")
+            # --------------------------------------------------------------
+            st.write('# Solution using input widgets')
+
+            # a selection for the user to specify the number of rows
+            # num_rows = st.slider('Number of rows', min_value=1, max_value=10)
+
+            # columns to lay out the inputs
+            grid_raw_material_ingr = st.columns(4)
+            grid_semi_finished_prod_ingr = st.columns(4)
+
+            # Function to create a row of widgets (with row number input to assure unique keys)
+            def add_ingr(row, grid):
+                with grid[0]:
+                    st.text_input('col1', key=f'input_col1{row}{id(grid)}')
+                with grid[1]:
+                    st.number_input('col2', step=1, key=f'input_col2{row}{id(grid)}')
+                with grid[2]:
+                    st.number_input('col3', step=1, key=f'input_col3{row}{id(grid)}')
+                with grid[3]:
+                    st.number_input('col4', step=1, key=f'input_col4{row}{id(grid)}',
+                                    value=st.session_state[f'input_col2{row}{id(grid)}'] \
+                                          - st.session_state[f'input_col3{row}{id(grid)}'],
+                                    disabled=True)
+
+            # Loop to create rows of input widgets
+            for r in range(n_raw_material_ingr):
+                add_ingr(r, grid_raw_material_ingr)
+            for r in range(n_semi_finished_prod_ingr):
+                add_ingr(r, grid_semi_finished_prod_ingr)
+            # --------------------------------------------------------------
+
             submit = st.form_submit_button(trad["Add Semi-Finished Product"])
             if submit:
                 try:
-                    ingredients__a = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in zip(ingredients_a, ingredients_quantity_a)}
-                    ingredients__b = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in zip(ingredients_b, ingredients_quantity_b)}
-                    all_ingredients = ingredients__a | ingredients__b
+                    # ingredients__a = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in zip(ingredients_a, ingredients_quantity_a)}
+                    # ingredients__b = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in zip(ingredients_b, ingredients_quantity_b)}
+                    # all_ingredients = ingredients__a | ingredients__b
+                    all_ingredients = {}
                     instance = models.SemiFinishedProduct(
                         name=name,
                         date=date,
@@ -234,69 +274,70 @@ def main():
                     st.error(f"Error adding raw material {e}")
 
         df = models.to_dataframes(raw_materials)  # .drop('_id', axis=1)
-        df['supplier_name'] = df['supplier_id'].apply(lambda x: models.supplier_collection.find_one({"_id": ObjectId(x)})['name'])
-        edited_df = dataframe_with_selections(
-            df,
-            config_columns={
-                "supplier_name": st.column_config.SelectboxColumn(
-                    options=suppliers_name_to_id.keys(),
-                    required=True),
-                "quantity_unit": st.column_config.SelectboxColumn(
-                    options=models.QuantityEnum.__members__.keys(),
-                    required=True),
-                "supplier_id": None,
-            },
-            disabled=["consumed_quantity", "is_finished"]
-        )
-        if st.button("Modify Data", key="raw_materials modify data"):
-            edited_df = edited_df.dropna(how='all')
-            try:
-                deleted_rows = edited_df[edited_df["delete"] == True]
-                edited_df = edited_df.drop(columns=["delete"])
-                if len(deleted_rows) > 0:
-                    for index, row in deleted_rows.iterrows():
-                        models.delete_raw_material_by_id(row['_id'])
-            except Exception as e:
-                error = True
-                st.error(f"Error deleting raw material {e}")
-            try:
-                # select new rows of edited_df wrt original df
-                new_rows = edited_df[~edited_df.index.isin(df.index)]
-                if len(new_rows) > 0:
-                    new_rows['supplier_id'] = new_rows['supplier_name'].apply(lambda x: suppliers_name_to_id[x])
-                    for index, row in new_rows.iterrows():
-                        instance = models.RawMaterial(**row.dropna().to_dict())
-                        instance.insert()
-            except Exception as e:
-                error = True
-                st.error(f"Error adding raw material {e}")
+        if len(df) > 0:
+            df['supplier_name'] = df['supplier_id'].apply(lambda x: models.supplier_collection.find_one({"_id": ObjectId(x)})['name'])
+            edited_df = dataframe_with_selections(
+                df,
+                config_columns={
+                    "supplier_name": st.column_config.SelectboxColumn(
+                        options=suppliers_name_to_id.keys(),
+                        required=True),
+                    "quantity_unit": st.column_config.SelectboxColumn(
+                        options=models.QuantityEnum.__members__.keys(),
+                        required=True),
+                    "supplier_id": None,
+                },
+                disabled=["consumed_quantity", "is_finished"]
+            )
+            if st.button("Modify Data", key="raw_materials modify data"):
+                edited_df = edited_df.dropna(how='all')
+                try:
+                    deleted_rows = edited_df[edited_df["delete"] == True]
+                    edited_df = edited_df.drop(columns=["delete"])
+                    if len(deleted_rows) > 0:
+                        for index, row in deleted_rows.iterrows():
+                            models.delete_raw_material_by_id(row['_id'])
+                except Exception as e:
+                    error = True
+                    st.error(f"Error deleting raw material {e}")
+                try:
+                    # select new rows of edited_df wrt original df
+                    new_rows = edited_df[~edited_df.index.isin(df.index)]
+                    if len(new_rows) > 0:
+                        new_rows['supplier_id'] = new_rows['supplier_name'].apply(lambda x: suppliers_name_to_id[x])
+                        for index, row in new_rows.iterrows():
+                            instance = models.RawMaterial(**row.dropna().to_dict())
+                            instance.insert()
+                except Exception as e:
+                    error = True
+                    st.error(f"Error adding raw material {e}")
 
-            try:
-                # Find common indices to compare rows
-                common_indices = df.index.intersection(edited_df.index)
+                try:
+                    # Find common indices to compare rows
+                    common_indices = df.index.intersection(edited_df.index)
 
-                # Use the common indices to filter rows
-                common_rows_original = df.loc[common_indices]
-                common_rows_modified = edited_df.loc[common_indices]
+                    # Use the common indices to filter rows
+                    common_rows_original = df.loc[common_indices]
+                    common_rows_modified = edited_df.loc[common_indices]
 
-                # Creating a mask for changes
-                changes_mask = common_rows_modified != common_rows_original
+                    # Creating a mask for changes
+                    changes_mask = common_rows_modified != common_rows_original
 
-                # Applying the mask to display old values in unchanged columns
-                changes_mask_ = changes_mask.any(axis=1)
-                modifications = common_rows_modified[changes_mask_]
-                if len(modifications) > 0:
-                    for index, row in modifications.iterrows():
-                        instance = models.RawMaterial(**row.dropna().to_dict())
-                        instance.insert(update=True)
-            except Exception as e:
-                error = True
-                st.error(f"Error modifying raw material {e}")
-            if not error:
-                st.success(trad["Data modified successfully"])
-                st.balloons()
-            else:
-                st.error("Error modifying data")
+                    # Applying the mask to display old values in unchanged columns
+                    changes_mask_ = changes_mask.any(axis=1)
+                    modifications = common_rows_modified[changes_mask_]
+                    if len(modifications) > 0:
+                        for index, row in modifications.iterrows():
+                            instance = models.RawMaterial(**row.dropna().to_dict())
+                            instance.insert(update=True)
+                except Exception as e:
+                    error = True
+                    st.error(f"Error modifying raw material {e}")
+                if not error:
+                    st.success(trad["Data modified successfully"])
+                    st.balloons()
+                else:
+                    st.error("Error modifying data")
 
     # Suppliers Tab
     with tab3:
@@ -324,56 +365,58 @@ def main():
                     st.error(f"Error adding supplier {e}")
 
         df = models.to_dataframes(suppliers)  # .drop('_id', axis=1)
-        edited_df = dataframe_with_selections(df)
-        if st.button(trad["Modify Data"], key="supplier modify data"):
-            edited_df = edited_df.dropna(how='all')
-            try:
-                deleted_rows = edited_df[edited_df["delete"] == True]
-                edited_df = edited_df.drop(columns=["delete"])
-                if len(deleted_rows) > 0:
-                    for index, row in deleted_rows.iterrows():
-                        models.delete_supplier_by_id(row['_id'])
-            except Exception as e:
-                error = True
-                st.error(f"Error deleting supplier {e} {edited_df.columns} {edited_df}")
+        if len(df) > 0:
 
-            try:
-                # select new rows of edited_df wrt original df
-                new_rows = edited_df[~edited_df.index.isin(df.index)]
-                if len(new_rows) > 0:
-                    for index, row in new_rows.iterrows():
-                        instance = models.Supplier(**row.dropna().to_dict())
-                        instance.insert()
-            except Exception as e:
-                error = True
-                st.error(f"Error adding supplier {e} {edited_df.columns} {edited_df}")
+            edited_df = dataframe_with_selections(df)
+            if st.button(trad["Modify Data"], key="supplier modify data"):
+                edited_df = edited_df.dropna(how='all')
+                try:
+                    deleted_rows = edited_df[edited_df["delete"] == True]
+                    edited_df = edited_df.drop(columns=["delete"])
+                    if len(deleted_rows) > 0:
+                        for index, row in deleted_rows.iterrows():
+                            models.delete_supplier_by_id(row['_id'])
+                except Exception as e:
+                    error = True
+                    st.error(f"Error deleting supplier {e} {edited_df.columns} {edited_df}")
 
-            try:
-                # Find common indices to compare rows
-                common_indices = df.index.intersection(edited_df.index)
+                try:
+                    # select new rows of edited_df wrt original df
+                    new_rows = edited_df[~edited_df.index.isin(df.index)]
+                    if len(new_rows) > 0:
+                        for index, row in new_rows.iterrows():
+                            instance = models.Supplier(**row.dropna().to_dict())
+                            instance.insert()
+                except Exception as e:
+                    error = True
+                    st.error(f"Error adding supplier {e} {edited_df.columns} {edited_df}")
 
-                # Use the common indices to filter rows
-                common_rows_original = df.loc[common_indices]
-                common_rows_modified = edited_df.loc[common_indices]
+                try:
+                    # Find common indices to compare rows
+                    common_indices = df.index.intersection(edited_df.index)
 
-                # Creating a mask for changes
-                changes_mask = common_rows_modified != common_rows_original
+                    # Use the common indices to filter rows
+                    common_rows_original = df.loc[common_indices]
+                    common_rows_modified = edited_df.loc[common_indices]
 
-                # Applying the mask to display old values in unchanged columns
-                changes_mask_ = changes_mask.any(axis=1)
-                modifications = common_rows_modified[changes_mask_]
-                if len(modifications) > 0:
-                    for index, row in modifications.iterrows():
-                        supplier = models.Supplier(**row.to_dict())
-                        supplier.insert(update=True)
-            except Exception as e:
-                error = True
-                st.error(f"Error modifying supplier {e} {edited_df.columns} {edited_df}")
-            if not error:
-                st.success(trad["Data modified successfully"])
-                st.balloons()
-            else:
-                st.error(trad["Error modifying data"])
+                    # Creating a mask for changes
+                    changes_mask = common_rows_modified != common_rows_original
+
+                    # Applying the mask to display old values in unchanged columns
+                    changes_mask_ = changes_mask.any(axis=1)
+                    modifications = common_rows_modified[changes_mask_]
+                    if len(modifications) > 0:
+                        for index, row in modifications.iterrows():
+                            supplier = models.Supplier(**row.to_dict())
+                            supplier.insert(update=True)
+                except Exception as e:
+                    error = True
+                    st.error(f"Error modifying supplier {e} {edited_df.columns} {edited_df}")
+                if not error:
+                    st.success(trad["Data modified successfully"])
+                    st.balloons()
+                else:
+                    st.error(trad["Error modifying data"])
 
 
 if __name__ == "__main__":

@@ -1,8 +1,7 @@
 import streamlit as st
-from lang import get_translations
-lang_choice = 'it'
-trad = get_translations(lang_choice)
+import lang
 # Initialization
+trad = lang.get_translations(lang.lang_choice)
 if 'trad' not in st.session_state:
     st.session_state['trad'] = trad
 trad = st.session_state['trad']
