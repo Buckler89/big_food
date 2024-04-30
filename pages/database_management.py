@@ -124,7 +124,7 @@ def main():
 
 
     # Semi-Finished Products Tab
-    with tab1:
+    with (tab1):
         st.header(trad["Semi-Finished Products"])
         """
         Un prodotto semilavorato è un prodotto che non è ancora finito, ma che ha subito una certa quantità di lavorazione.
@@ -144,12 +144,14 @@ def main():
         raw_materials_id_to_name = {raw_material.id: raw_material.name for raw_material in raw_materials}
         raw_materials_name_to_id = {raw_material.name: raw_material.id for raw_material in raw_materials}
 
+        # https://mathcatsand-examples.streamlit.app/add_data
         n_raw_material_ingr = st.slider(trad['How many Raw Material?'], min_value=1, max_value=20)
         n_semi_finished_prod_ingr = st.slider(trad['How many Semi-Finished Products?'], min_value=1, max_value=20)
 
         with st.form(trad["Add Semi-Finished Product"]):
             name = st.text_input(trad["Name"])
-            date = st.date_input(trad["Production Date"])
+            date = st.date_input(trad["Production Date"])  # this must be before the query since it is used to filter the expiration date
+
             semi_finished_products_as_ingredients = models.query_collection(models.SemiFinishedProduct,
                                                                             models.semi_finished_product_collection, **{
                     "is_finished": False,
@@ -159,6 +161,7 @@ def main():
                                                  semi_finished_product in semi_finished_products_as_ingredients}
             semi_finished_products_as_ingredients_name_to_id = {f"{semi_finished_product.name} - {semi_finished_product.batch_number}": semi_finished_product.id for
                                                  semi_finished_product in semi_finished_products_as_ingredients}
+
             raw_materials = models.query_collection(models.RawMaterial, models.raw_material_collection, **{
                     "is_finished": False,
                     "expiration_date": {"$gte": date}
@@ -179,43 +182,72 @@ def main():
             # ingredients_quantity_b = st.multiselect(trad["Ingredients Quantity"], [0] * len(ingredients_b),
             #                                         key="ingredients_quantity_b")
             # --------------------------------------------------------------
-            st.write('# Solution using input widgets')
+            st.write(f'## {trad["Ingredients"]}')
 
             # a selection for the user to specify the number of rows
             # num_rows = st.slider('Number of rows', min_value=1, max_value=10)
 
             # columns to lay out the inputs
-            grid_raw_material_ingr = st.columns(4)
-            grid_semi_finished_prod_ingr = st.columns(4)
+            # if st.session_state.get("all_ingredients") is None:
+            st.write(f'### {trad["Raw Materials"]}')
+            grid_raw_material_ingr = st.columns(2)
+            st.write(f'### {trad["Semi-Finished Products"]}')
+            grid_semi_finished_prod_ingr = st.columns(2)
+
 
             # Function to create a row of widgets (with row number input to assure unique keys)
-            def add_ingr(row, grid):
+            ingredient_user_input = {}
+            def add_ingr(row, grid, options, key):
                 with grid[0]:
-                    st.text_input('col1', key=f'input_col1{row}{id(grid)}')
+                    st.session_state["all_ingredients"][f"ingredient_{row}{key}"] = st.selectbox(
+                        trad["Ingredient"],
+                        options,
+                        index=None,
+                        key=f"ingredient_{row}{key}"
+                    )
                 with grid[1]:
-                    st.number_input('col2', step=1, key=f'input_col2{row}{id(grid)}')
-                with grid[2]:
-                    st.number_input('col3', step=1, key=f'input_col3{row}{id(grid)}')
-                with grid[3]:
-                    st.number_input('col4', step=1, key=f'input_col4{row}{id(grid)}',
-                                    value=st.session_state[f'input_col2{row}{id(grid)}'] \
-                                          - st.session_state[f'input_col3{row}{id(grid)}'],
-                                    disabled=True)
+                    st.session_state["all_ingredients"][f"ingredient_quantity_{row}{key}"]  = st.number_input(trad["Quantity"], step=1, key=f"ingredient_quantity_{row}{key}")
+                # return i, q
 
             # Loop to create rows of input widgets
+            if st.session_state.get("all_ingredients") is None:
+                st.session_state["all_ingredients"] = {}
+
             for r in range(n_raw_material_ingr):
-                add_ingr(r, grid_raw_material_ingr)
+                # if st.session_state["all_ingredients"].get(f'ingredient_{r}{id(grid_raw_material_ingr)}', 'None') == 'None':
+                # if st.session_state.get(f'ingredient_{r}{id(grid_raw_material_ingr)}') is None:
+                add_ingr(r, grid_raw_material_ingr, list(raw_materials_id_to_name.values()), key="grid_raw_material_ingr")
+
             for r in range(n_semi_finished_prod_ingr):
-                add_ingr(r, grid_semi_finished_prod_ingr)
+                # if st.session_state["all_ingredients"].get(f'ingredient_{r}{id(grid_semi_finished_prod_ingr)}', 'None') == 'None':
+                # if st.session_state.get(f'ingredient_{r}{id(grid_semi_finished_prod_ingr)}') is None:
+                add_ingr(r, grid_semi_finished_prod_ingr, list(semi_finished_products_as_ingredients_id_to_name.values()), key="semi_finished_products_as_ingredients_id_to_name")
+
             # --------------------------------------------------------------
 
             submit = st.form_submit_button(trad["Add Semi-Finished Product"])
             if submit:
+                raw_ingredients = {}
+                semi_ingredients = {}
                 try:
+                    for r in range(n_raw_material_ingr):
+                        i, q = (st.session_state["all_ingredients"][f'ingredient_{r}grid_raw_material_ingr'],
+                                st.session_state["all_ingredients"][f'ingredient_quantity_{r}grid_raw_material_ingr'])
+                        if i is not None:
+                            raw_ingredients[i] = q
+                    for r in range(n_semi_finished_prod_ingr):
+                        i, q = (st.session_state["all_ingredients"][f'ingredient_{r}semi_finished_products_as_ingredients_id_to_name'],
+                                st.session_state["all_ingredients"][f'ingredient_quantity_{r}semi_finished_products_as_ingredients_id_to_name'])
+                        if i is not None:
+                            semi_ingredients[i] = q
+                    del st.session_state["all_ingredients"]
+                    all_ingredients1 = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in raw_ingredients.items()}
+                    all_ingredients2 = {semi_finished_products_as_ingredients_name_to_id[ingredient]: quantity for ingredient, quantity in semi_ingredients.items()}
+                    all_ingredients = all_ingredients1 | all_ingredients2
+
                     # ingredients__a = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in zip(ingredients_a, ingredients_quantity_a)}
                     # ingredients__b = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in zip(ingredients_b, ingredients_quantity_b)}
                     # all_ingredients = ingredients__a | ingredients__b
-                    all_ingredients = {}
                     instance = models.SemiFinishedProduct(
                         name=name,
                         date=date,

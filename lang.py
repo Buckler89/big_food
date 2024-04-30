@@ -331,8 +331,28 @@ t = {
         "ko": "준설제는 몇 개입니까?",
         "zh": "半成品有多少？",
     },
-
-
+    "Ingredients": {
+        "en": "Ingredients",
+        "es": "Ingredientes",
+        "fr": "Ingrédients",
+        "de": "Zutaten",
+        "it": "Ingredienti",
+        "pt": "Ingredientes",
+        "ja": "材料",
+        "ko": "성분",
+        "zh": "成分",
+    },
+    "Ingredient": {
+        "en": "Ingredient",
+        "es": "Ingrediente",
+        "fr": "Ingrédient",
+        "de": "Zutat",
+        "it": "Ingrediente",
+        "pt": "Ingrediente",
+        "ja": "材料",
+        "ko": "성분",
+        "zh": "成分",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)
