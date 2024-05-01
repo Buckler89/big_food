@@ -1,3 +1,4 @@
+import numpy as np
 import streamlit as st
 import pymongo
 from bson.objectid import ObjectId
@@ -13,6 +14,7 @@ from pandas.api.types import (
 )
 import pandas as pd
 import lang
+from typing import Union, List, Dict, Any, Optional, Tuple
 # Initialization
 trad = lang.get_translations(lang.lang_choice)
 if 'trad' not in st.session_state:
@@ -93,7 +95,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                     df = df[df[column].astype(str).str.contains(user_text_input)]
     return df
 
-def dataframe_with_selections(df, config_columns=None, disabled=False):
+def dataframe_with_selections(df, config_columns=None, disabled: Union[bool, List[str]] = False):
     df_with_selections = df.copy()
     df_with_selections.insert(len(df_with_selections.columns), "delete", False)
     column_config_base = {
@@ -114,7 +116,7 @@ def dataframe_with_selections(df, config_columns=None, disabled=False):
     return edited_df
 
 def main():
-
+    st.title(trad["software name"])
 
     tab1, tab2, tab3 = st.tabs([
         trad["Semi-Finished Products"],
@@ -124,7 +126,7 @@ def main():
 
 
     # Semi-Finished Products Tab
-    with (tab1):
+    with ((tab1)):
         st.header(trad["Semi-Finished Products"])
         """
         Un prodotto semilavorato è un prodotto che non è ancora finito, ma che ha subito una certa quantità di lavorazione.
@@ -144,11 +146,8 @@ def main():
         raw_materials_id_to_name = {raw_material.id: raw_material.name for raw_material in raw_materials}
         raw_materials_name_to_id = {raw_material.name: raw_material.id for raw_material in raw_materials}
 
-        # https://mathcatsand-examples.streamlit.app/add_data
-        n_raw_material_ingr = st.slider(trad['How many Raw Material?'], min_value=1, max_value=20)
-        n_semi_finished_prod_ingr = st.slider(trad['How many Semi-Finished Products?'], min_value=1, max_value=20)
-
-        with st.form(trad["Add Semi-Finished Product"]):
+        # with st.form(trad["Add Semi-Finished Product"]):
+        if True:
             name = st.text_input(trad["Name"])
             date = st.date_input(trad["Production Date"])  # this must be before the query since it is used to filter the expiration date
 
@@ -168,6 +167,20 @@ def main():
                 })
             raw_materials_id_to_name = {raw_material.id: f"{raw_material.name} - {raw_material.batch_number}" for raw_material in raw_materials}
             raw_materials_name_to_id = {f"{raw_material.name} - {raw_material.batch_number}": raw_material.id for raw_material in raw_materials}
+
+            max_quantity_value_raw_material = dict()
+            for raw_material in raw_materials:
+                v = raw_material.quantity - raw_material.consumed_quantity
+                v = int(v) if raw_material.quantity_unit in [models.QuantityEnum.unit] else float(v)
+                max_quantity_value_raw_material[f"{raw_material.name} - {raw_material.batch_number}"] = v
+
+            max_quantity_value_semi_finished_products = dict()
+            for semi_finished_product in semi_finished_products_as_ingredients:
+                v = semi_finished_product.quantity - semi_finished_product.consumed_quantity
+                v = int(v) if semi_finished_product.quantity_unit in [models.QuantityEnum.unit] else float(v)
+                max_quantity_value_semi_finished_products[f"{semi_finished_product.name} - {semi_finished_product.batch_number}"] = v
+
+
             expiration_date = st.date_input(trad["Expiration Date"])
             batch_number = st.text_input(trad["batch number"])
             quantity = st.number_input(trad["Quantity"])
@@ -183,7 +196,11 @@ def main():
             #                                         key="ingredients_quantity_b")
             # --------------------------------------------------------------
             st.write(f'## {trad["Ingredients"]}')
-
+            # https://mathcatsand-examples.streamlit.app/add_data
+            # n_raw_material_ingr = st.slider(trad['How many Raw Material?'], min_value=1, max_value=20)
+            # n_semi_finished_prod_ingr = st.slider(trad['How many Semi-Finished Products?'], min_value=1, max_value=20)
+            n_raw_material_ingr = st.number_input(trad['How many Raw Material?'], min_value=1, max_value=20, step=1)
+            n_semi_finished_prod_ingr = st.number_input(trad['How many Semi-Finished Products?'], min_value=1, max_value=20, step=1)
             # a selection for the user to specify the number of rows
             # num_rows = st.slider('Number of rows', min_value=1, max_value=10)
 
@@ -197,16 +214,22 @@ def main():
 
             # Function to create a row of widgets (with row number input to assure unique keys)
             ingredient_user_input = {}
-            def add_ingr(row, grid, options, key):
+
+            def add_ingr(row, grid, options, key, max_quantity_value=None):
+                # i = st.selectbox(trad["Ingredient"], options, index=None, key=f'ingredient_{row}{id(grid)}')
                 with grid[0]:
                     st.session_state["all_ingredients"][f"ingredient_{row}{key}"] = st.selectbox(
                         trad["Ingredient"],
                         options,
                         index=None,
-                        key=f"ingredient_{row}{key}"
+                        key=f"ingredient_{row}{key}",
                     )
                 with grid[1]:
-                    st.session_state["all_ingredients"][f"ingredient_quantity_{row}{key}"]  = st.number_input(trad["Quantity"], step=1, key=f"ingredient_quantity_{row}{key}")
+                    max_value = max_quantity_value.get(st.session_state["all_ingredients"][f"ingredient_{row}{key}"])
+                    type_ = type(max_value) if max_value is not None else int
+                    st.session_state["all_ingredients"][f"ingredient_quantity_{row}{key}"] = \
+                    st.number_input(trad["Quantity"], step=type_(1), min_value=type_(1), max_value=max_value, #max value non funziona
+                                    key=f"ingredient_quantity_{row}{key}")
                 # return i, q
 
             # Loop to create rows of input widgets
@@ -216,16 +239,17 @@ def main():
             for r in range(n_raw_material_ingr):
                 # if st.session_state["all_ingredients"].get(f'ingredient_{r}{id(grid_raw_material_ingr)}', 'None') == 'None':
                 # if st.session_state.get(f'ingredient_{r}{id(grid_raw_material_ingr)}') is None:
-                add_ingr(r, grid_raw_material_ingr, list(raw_materials_id_to_name.values()), key="grid_raw_material_ingr")
+                add_ingr(r, grid_raw_material_ingr, list(raw_materials_id_to_name.values()), key="grid_raw_material_ingr", max_quantity_value=max_quantity_value_raw_material)
 
             for r in range(n_semi_finished_prod_ingr):
                 # if st.session_state["all_ingredients"].get(f'ingredient_{r}{id(grid_semi_finished_prod_ingr)}', 'None') == 'None':
                 # if st.session_state.get(f'ingredient_{r}{id(grid_semi_finished_prod_ingr)}') is None:
-                add_ingr(r, grid_semi_finished_prod_ingr, list(semi_finished_products_as_ingredients_id_to_name.values()), key="semi_finished_products_as_ingredients_id_to_name")
+                add_ingr(r, grid_semi_finished_prod_ingr, list(semi_finished_products_as_ingredients_id_to_name.values()), key="semi_finished_products_as_ingredients_id_to_name", max_quantity_value=max_quantity_value_semi_finished_products)
 
             # --------------------------------------------------------------
 
-            submit = st.form_submit_button(trad["Add Semi-Finished Product"])
+            # submit = st.form_submit_button(trad["Add Semi-Finished Product"])
+            submit = st.button(trad["Add Semi-Finished Product"])
             if submit:
                 raw_ingredients = {}
                 semi_ingredients = {}
@@ -245,9 +269,6 @@ def main():
                     all_ingredients2 = {semi_finished_products_as_ingredients_name_to_id[ingredient]: quantity for ingredient, quantity in semi_ingredients.items()}
                     all_ingredients = all_ingredients1 | all_ingredients2
 
-                    # ingredients__a = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in zip(ingredients_a, ingredients_quantity_a)}
-                    # ingredients__b = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in zip(ingredients_b, ingredients_quantity_b)}
-                    # all_ingredients = ingredients__a | ingredients__b
                     instance = models.SemiFinishedProduct(
                         name=name,
                         date=date,
@@ -258,6 +279,9 @@ def main():
                         ingredients=all_ingredients
                     )
                     instance.insert()
+                    # for ingredient_id, quantity in all_ingredients.items(): # todo update quantity of raw materials and semi-finished products
+
+
                     st.success(trad["Semi-Finished Product added successfully"])
                     st.balloons()
                 except Exception as e:
@@ -324,7 +348,7 @@ def main():
             if st.button("Modify Data", key="raw_materials modify data"):
                 edited_df = edited_df.dropna(how='all')
                 try:
-                    deleted_rows = edited_df[edited_df["delete"] == True]
+                    deleted_rows = edited_df[edited_df["delete"] is True]
                     edited_df = edited_df.drop(columns=["delete"])
                     if len(deleted_rows) > 0:
                         for index, row in deleted_rows.iterrows():
