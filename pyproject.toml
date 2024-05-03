@@ -12,6 +12,8 @@ sqlalchemy = "^2.0.29"
 pymongo = "^4.7.0"
 pydantic = "^2.7.1"
 pydantic-mongo = "^2.3.0"
+streamlit-extras = "^0.4.2"
+streamlit-js-eval = "^0.1.7"
 
 
 [build-system]

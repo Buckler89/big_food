@@ -364,6 +364,17 @@ t = {
         "ko": "성분",
         "zh": "成分",
     },
+    "Done": {
+        "en": "Done",
+        "es": "Hecho",
+        "fr": "Terminé",
+        "de": "Erledigt",
+        "it": "Fatto",
+        "pt": "Feito",
+        "ja": "完了",
+        "ko": "완료",
+        "zh": "完成",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)
