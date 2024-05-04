@@ -26,6 +26,7 @@ class QuantityEnum(str, Enum):
     unit = 'unit'
 
 class B(BaseModel):
+    _collection_name: str
     name: str
     # id: Optional[PydanticObjectId | None] = None
     id: Optional[PydanticObjectId] = Field(alias="_id", default=None)
@@ -54,10 +55,12 @@ class B(BaseModel):
             elif mydb[self._collection_name].find_one({self._unique_field_name: unique_field}):
                 # update
                 if update:
+                    q.pop("id", None)
+                    q.pop("_id", None)
                     mydb[self._collection_name].update_one({self._unique_field_name: unique_field}, {'$set': q})
-                    print(f"The supplier {unique_field} updated successfully")
+                    print(f"{self._collection_name} {unique_field} updated successfully")
                 else:
-                    raise Warning(f"The {self._unique_field_name}={unique_field} already exists in {self._collection_name} collection. Update not allowed")
+                    raise Exception(f"The {self._unique_field_name}={unique_field} already exists in {self._collection_name} collection. Update not allowed")
             else:
                 record = mydb[self._collection_name].insert_one(q)
         except Exception as e:
@@ -91,7 +94,7 @@ class RawMaterial(B):
     expiration_date: datetime
     batch_number: str
     quantity: float
-    consumed_quantity: int = 0
+    consumed_quantity: float = 0
     quantity_unit: QuantityEnum
     is_finished: bool = False
 
@@ -100,6 +103,10 @@ class RawMaterial(B):
 
     @model_validator(mode='after')
     def validate(self, values: Any):
+        if not isinstance(self.date, datetime):
+            self.date = datetime.combine(self.date, datetime.min.time())
+        if not isinstance(self.expiration_date, datetime):
+            self.expiration_date = datetime.combine(self.expiration_date, datetime.min.time())
         if self.date > self.expiration_date:
             raise ValueError("The expiration date cannot be earlier than the production date")
         if self.quantity <= 0:
@@ -107,6 +114,7 @@ class RawMaterial(B):
         if not supplier_collection.find_one({'_id': ObjectId(self.supplier_id)}):
             raise ValueError("The supplier does not exist")
         # check ot exist another raw material with the same fields
+
         return values
 
 
@@ -121,7 +129,7 @@ class SemiFinishedProduct(B):
     expiration_date: datetime
     batch_number: str
     quantity: float
-    consumed_quantity: int = 0
+    consumed_quantity: float = 0
     quantity_unit: QuantityEnum
     is_finished: bool = False
 
@@ -129,6 +137,10 @@ class SemiFinishedProduct(B):
 
     @model_validator(mode='after')
     def validate(self, values: Any):
+        if not isinstance(self.date, datetime):
+            self.date = datetime.combine(self.date, datetime.min.time())
+        if not isinstance(self.expiration_date, datetime):
+            self.expiration_date = datetime.combine(self.expiration_date, datetime.min.time())
         if self.date > self.expiration_date:
             raise ValueError("The expiration date cannot be earlier than the production date")
         if len(self.ingredients) == 0:
@@ -154,6 +166,11 @@ def get_raw_material_by_id(raw_material_id: str) -> Union[RawMaterial, None]:
         return RawMaterial(**raw_material)
     return None
 
+def get_raw_material_by_batch_number(batch_number: str) -> Union[RawMaterial, None]:
+    raw_material = raw_material_collection.find_one({'batch_number': batch_number})
+    if raw_material:
+        return RawMaterial(**raw_material)
+    return None
 
 def get_semi_finished_product_by_id(semi_finished_product_id: str) -> Union[SemiFinishedProduct, None]:
     semi_finished_product = semi_finished_product_collection.find_one({'_id': ObjectId(semi_finished_product_id)})
@@ -161,6 +178,11 @@ def get_semi_finished_product_by_id(semi_finished_product_id: str) -> Union[Semi
         return SemiFinishedProduct(**semi_finished_product)
     return None
 
+def get_semi_finished_product_by_batch_number(batch_number: str) -> Union[SemiFinishedProduct, None]:
+    semi_finished_product = semi_finished_product_collection.find_one({'batch_number': batch_number})
+    if semi_finished_product:
+        return SemiFinishedProduct(**semi_finished_product)
+    return None
 
 def get_all_suppliers() -> List[Supplier]:
     return [Supplier(**supplier) for supplier in supplier_collection.find()]
@@ -189,17 +211,27 @@ def delete_semi_finished_product_by_id(semi_finished_product_id: str) -> bool:
     return result.deleted_count > 0
 
 
-def query_collection(constructor, collection, **kwargs) -> List[Union[Supplier, RawMaterial, SemiFinishedProduct]]:
+def query_collection(constructor, collection, mode='AND', **kwargs) -> List[Union[Supplier, RawMaterial, SemiFinishedProduct]]:
 
-    # query = {}
-    or_query = []
+    if mode == 'AND':
+        query = {}
+    elif mode == 'OR':
+        query = []
     for key, value in kwargs.items():
         if key not in constructor.__fields__:
             raise ValueError(f"Invalid field {key}")
-        if isinstance(value, str):
-            # query[key] = {"$regex": value, "$options": "i"} # AND format
-            or_query.append({key: {"$regex": value, "$options": "i"}})  # OR format
-    query = {"$or": or_query} if or_query else {}
+        if mode == 'AND':
+            if isinstance(value, str):
+                query[key] = {"$regex": value, "$options": "i"} # AND format
+            else:
+                query[key] = value
+        elif mode == 'OR':
+            if isinstance(value, str):
+                query.append({key: {"$regex": value, "$options": "i"}})  # OR format
+            else:
+                query.append({key: value})
+    if mode == 'OR':
+        query = {"$or": query} if query else {}
     results = collection.find(query)
     return [constructor(**r) for r in results]
     # results_with_id = list()
