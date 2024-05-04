@@ -190,12 +190,16 @@ def delete_semi_finished_product_by_id(semi_finished_product_id: str) -> bool:
 
 
 def query_collection(constructor, collection, **kwargs) -> List[Union[Supplier, RawMaterial, SemiFinishedProduct]]:
-    query = {}
+
+    # query = {}
+    or_query = []
     for key, value in kwargs.items():
         if key not in constructor.__fields__:
             raise ValueError(f"Invalid field {key}")
         if isinstance(value, str):
-            query[key] = {"$regex": value, "$options": "i"}
+            # query[key] = {"$regex": value, "$options": "i"} # AND format
+            or_query.append({key: {"$regex": value, "$options": "i"}})  # OR format
+    query = {"$or": or_query} if or_query else {}
     results = collection.find(query)
     return [constructor(**r) for r in results]
     # results_with_id = list()
