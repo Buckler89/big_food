@@ -39,7 +39,6 @@ def main():
 
             if submit:
                 try:
-
                     supplier_id = models.supplier_collection.find_one({"name": supplier_name})['_id']
                     instance = models.RawMaterial(
                         name=name,

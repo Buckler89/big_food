@@ -7,10 +7,11 @@ from pydantic_mongo import AbstractRepository, PydanticObjectId
 from pymongo.collection import Collection
 import pandas as pd
 from enum import Enum, IntEnum
+import os
 
 
-
-myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+myclient = pymongo.MongoClient(mongo_uri)
 mydb = myclient['food_traceability']
 semi_finished_products_collection_name = 'semi_finished_products'
 suppliers_collection_name = 'suppliers'

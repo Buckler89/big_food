@@ -8,4 +8,25 @@ services:
      - "27017:27017"
     volumes:
       - ./mongo-local:/data/db
-
+      - ./mongo_backups:/backup
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    volumes:
+      - ./mongo_backups:/backup
+    depends_on:
+      - mongo
+  # streamlit app configuration
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/buckler89/big_food-app:latest
+    ports:
+      - "8501:8501"
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/mydb
+    command: streamlit run Home.py --server.port 8501
