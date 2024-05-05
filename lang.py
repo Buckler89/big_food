@@ -1,3 +1,4 @@
+import streamlit as st
 
 class Translations(dict):
     def __init__(self, d, s="en"):
@@ -430,6 +431,17 @@ t = {
         "ko": "선택된 항목 삭제",
         "zh": "删除所选",
     },
+    "Delete this product": {
+        "en": "Delete this product",
+        "es": "Eliminar este producto",
+        "fr": "Supprimer ce produit",
+        "de": "Dieses Produkt löschen",
+        "it": "Elimina questo prodotto",
+        "pt": "Excluir este produto",
+        "ja": "この製品を削除",
+        "ko": "이 제품 삭제",
+        "zh": "删除此产品",
+    },
     "Add Raw Material": {
         "en": "Add Raw Material",
         "es": "Agregar Materia Prima",
@@ -452,9 +464,100 @@ t = {
         "ko": "공급 업체 추가",
         "zh": "添加供应商",
     },
+    "Products and Semi-finished Products": {
+        "en": "Products and Semi-finished Products",
+        "es": "Productos y productos semielaborados",
+        "fr": "Produits et produits semi-finis",
+        "de": "Produkte und Halbfertigprodukte",
+        "it": "Prodotti e semilavorati",
+        "pt": "Produtos e produtos semi-acabados",
+        "ja": "製品と半製品",
+        "ko": "제품 및 준설제",
+        "zh": "产品和半成品",
+    },
+    "Data Entry": {
+        "en": "Data Entry",
+        "es": "Entrada de datos",
+        "fr": "Saisie de données",
+        "de": "Dateneingabe",
+        "it": "Inserimento dati",
+        "pt": "Entrada de dados",
+        "ja": "データ入力",
+        "ko": "데이터 입력",
+        "zh": "数据输入",
+    },
+    "Modify Data": {
+        "en": "Modify Data",
+        "es": "Modificar Datos",
+        "fr": "Modifier les données",
+        "de": "Daten ändern",
+        "it": "Modifica dati",
+        "pt": "Modificar dados",
+        "ja": "データを変更",
+        "ko": "데이터 수정",
+        "zh": "修改数据",
+    },
+    "Data Visualization": {
+        "en": "Data Visualization",
+        "es": "Visualización de datos",
+        "fr": "Visualisation des données",
+        "de": "Datenvisualisierung",
+        "it": "Visualizzazione dei dati",
+        "pt": "Visualização de dados",
+        "ja": "データ可視化",
+        "ko": "데이터 시각화",
+        "zh": "数据可视化",
+    },
+    "Field": {
+        "en": "Field",
+        "es": "Campo",
+        "fr": "Champ",
+        "de": "Feld",
+        "it": "Campo",
+        "pt": "Campo",
+        "ja": "フィールド",
+        "ko": "분야",
+        "zh": "领域",
+    },
+    "Value": {
+        "en": "Value",
+        "es": "Valor",
+        "fr": "Valeur",
+        "de": "Wert",
+        "it": "Valore",
+        "pt": "Valor",
+        "ja": "値",
+        "ko": "값",
+        "zh": "值",
+    },
+    "Select Semi-Finished Product": {
+        "en": "Select Semi-Finished Product",
+        "es": "Seleccionar producto semielaborado",
+        "fr": "Sélectionner un produit semi-fini",
+        "de": "Halbfertiges Produkt auswählen",
+        "it": "Seleziona prodotto semilavorato",
+        "pt": "Selecionar produto semi-acabado",
+        "ja": "半製品を選択",
+        "ko": "준설제 선택",
+        "zh": "选择半成品",
+    },
+    "Select Raw Material": {
+        "en": "Select Raw Material",
+        "es": "Seleccionar materia prima",
+        "fr": "Sélectionner une matière première",
+        "de": "Rohstoff auswählen",
+        "it": "Seleziona materia prima",
+        "pt": "Selecionar matéria-prima",
+        "ja": "原材料を選択",
+        "ko": "원자재 선택",
+        "zh": "选择原材料",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)
+    if 'trad' not in st.session_state:
+        st.session_state['trad'] = trad
+    trad = st.session_state['trad']
     return trad
 lang_choice = 'it'
 # italian date time format

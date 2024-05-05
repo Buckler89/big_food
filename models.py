@@ -233,13 +233,9 @@ def query_collection(constructor, collection, mode='AND', **kwargs) -> List[Unio
     if mode == 'OR':
         query = {"$or": query} if query else {}
     results = collection.find(query)
-    return [constructor(**r) for r in results]
-    # results_with_id = list()
-    # for r in results:
-    #     r['id'] = r['_id']
-    #     del r['_id']
-    #     results_with_id.append(r)
-    # return [constructor(**r) for r in results_with_id]
+    instances = [constructor(**r) for r in results] if results else []
+    return instances
+
 
 def to_dataframes(List: List[Union[Supplier, RawMaterial, SemiFinishedProduct]]) -> pd.DataFrame:
     as_dict = [r.dict(by_alias=True) for r in List]
