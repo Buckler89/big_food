@@ -552,6 +552,17 @@ t = {
         "ko": "원자재 선택",
         "zh": "选择原材料",
     },
+    "manual input": {
+        "en": "Manual Input",
+        "es": "Entrada manual",
+        "fr": "Entrée manuelle",
+        "de": "Manuelle Eingabe",
+        "it": "Inserimento manuale",
+        "pt": "Entrada manual",
+        "ja": "手動入力",
+        "ko": "수동 입력",
+        "zh": "手动输入",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)

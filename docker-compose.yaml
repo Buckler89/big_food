@@ -9,15 +9,15 @@ services:
     volumes:
       - ./mongo-local:/data/db
       - ./mongo_backups:/backup
-  backup:
-    build:
-      context: .
-      dockerfile: Dockerfile.backup
-    volumes:
-      - ./mongo_backups:/backup
-    depends_on:
-      - mongo
-  # streamlit app configuration
+#  backup:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.backup
+#    volumes:
+#      - ./mongo_backups:/backup
+#    depends_on:
+#      - mongo
+#  # streamlit app configuration
   app:
     build:
       context: .
@@ -29,4 +29,5 @@ services:
       - mongo
     environment:
       - MONGO_URI=mongodb://mongo:27017/mydb
-    command: streamlit run Home.py --server.port 8501
+#    command: streamlit run Home.py --server.port 8501
+    command: /bin/bash -c "streamlit run Home.py --server.port 8501 & ngrok http --domain=solid-jaybird-typically.ngrok-free.app 8501 --oauth google --oauth-allow-email droghini.diego@gmail.com "

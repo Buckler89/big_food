@@ -14,6 +14,8 @@ pymongo = "^4.7.0"
 pydantic = "^2.7.1"
 pydantic-mongo = "^2.3.0"
 python-barcode = "^0.15.1"
+streamlit-extras = "^0.4.2"
+qrcode = "^7.4.2"
 
 
 [build-system]

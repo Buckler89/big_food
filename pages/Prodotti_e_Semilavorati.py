@@ -9,6 +9,52 @@ from utils import manage_barcode
 trad = lang.get_translations(lang.lang_choice)
 
 st.sidebar.image("https://www.livafritta.it/wp-content/uploads/2020/02/logo-livafritta-01.png")
+max_n_ingredients = 30
+
+
+def manage_barcode_reader(n_semi_finished_prod_ingr_placeholder):
+    barcode = st.session_state.scansioned_bar_code
+    print(barcode)
+    # Aggiorna il valore di un altro widget tramite session_state
+    if barcode:
+        try:
+
+            # Imposta il valore di session_state per il numero
+            st.session_state.n_raw_material_ingr += 1  # esempio di calcolo
+            st.session_state.scansioned_bar_code = ""  # esempio di calcolo
+            # the string is a list of barcodes separated by a newline
+            # each barcode is a string representing a batch number of an ingredient
+            # the batch number is used to identify the ingredient in the database
+            # st.session_state[f"ingredient_{row}{key}"]
+            st.session_state[f"ingredient_{st.session_state.n_raw_material_ingr - 1}grid_raw_material_ingr"] = 'carne di suino - 2939340'
+            try:
+                ingredient = models.get_raw_material_by_batch_number(barcode)
+                if ingredient:
+
+                    # add the ingredient to the list of ingredients
+                    # if the ingredient is already in the list, increment the quantity
+                    # if the ingredient is not in the list, add it to the list
+                    st.session_state[
+                        f"ingredient_{st.session_state.n_raw_material_ingr - 1}grid_raw_material_ingr"] =\
+                        f"{ingredient.name} - {ingredient.batch_number}"
+                else:
+                    ingredient = models.get_semi_finished_product_by_batch_number(barcode)
+                    if ingredient:
+                        # add the ingredient to the list of ingredients
+                        # if the ingredient is already in the list, increment the quantity
+                        # if the ingredient is not in the list, add it to the list
+                        st.session_state[
+                            f"ingredient_{st.session_state.n_raw_material_ingr - 1}semi_finished_products_as_ingredients_id_to_name"] = \
+                            f"{ingredient.name} - {ingredient.batch_number}"
+                    else:
+                        st.error(f"Ingredient with batch number {barcode} not found")
+                        st.session_state.n_raw_material_ingr -= 1  # undo the increment
+            except Exception as e:
+                error = True
+                st.error(f"Error adding ingredient {e}")
+        except ValueError:
+            st.error("Please enter a valid number for barcode.")
+
 
 def main():
     # st.title(trad["software name"])
@@ -23,7 +69,6 @@ def main():
     # Semi-Finished Products Tab
     with tab1:
         st.header(trad["Semi-Finished Products"])
-        max_n_ingredients = 30
         error = False
 
         raw_materials = models.query_collection(models.RawMaterial, models.raw_material_collection, **{})
@@ -37,22 +82,30 @@ def main():
         quantity_placeholder = st.empty()
         quantity_unit_placeholder = st.empty()
 
+        st.write(f'## {trad["Ingredients"]}')
+        st.write(f'#### {trad["Scan Barcode"]}')
+        scan_barcode_placeholder = st.empty()
+        st.write(f'#### {trad["Manual Input"]}')
+        st.write(f'##### {trad["Raw Materials"]}')
+        n_raw_material_ingr_placeholder = st.empty()
+        grid_raw_material_ingr_placeholder = st.empty()
+        st.write(f'##### {trad["Semi-Finished Products"]}')
+        n_semi_finished_prod_ingr_placeholder = st.empty()
+        grid_semi_finished_prod_ingr_placeholder = st.empty()
+
         # columns to lay out the inputs
         # if st.session_state.get("all_ingredients") is None:
-        st.write(f'## {trad["Ingredients"]}')
         # https://mathcatsand-examples.streamlit.app/add_data
         # n_raw_material_ingr = st.slider(trad['How many Raw Material?'], min_value=1, max_value=20)
         # n_semi_finished_prod_ingr = st.slider(trad['How many Semi-Finished Products?'], min_value=1, max_value=20)
-        st.write(f'#### {trad["Scan Barcode"]}')
-        scan_barcode_placeholder = st.empty()
-        scansioned_bar_code = scan_barcode_placeholder.text_area(trad["Scan Barcode"], key="semi_finished_product_scan_barcode")
-        st.write(f'#### {trad["Manual Input"]}')
-        st.write(f'##### {trad["Raw Materials"]}')
-        n_raw_material_ingr = st.number_input(trad['How many Raw Material?'], min_value=0, max_value=max_n_ingredients, step=1)
-        grid_raw_material_ingr = st.columns(2)
-        st.write(f'##### {trad["Semi-Finished Products"]}')
-        n_semi_finished_prod_ingr = st.number_input(trad['How many Semi-Finished Products?'], min_value=0, max_value=max_n_ingredients, step=1)
-        grid_semi_finished_prod_ingr = st.columns(2)
+
+        scansioned_bar_code = scan_barcode_placeholder.text_input(trad["Scan Barcode"], on_change=manage_barcode_reader, args=(n_semi_finished_prod_ingr_placeholder,), key="scansioned_bar_code")
+
+        n_raw_material_ingr = n_raw_material_ingr_placeholder.number_input(trad['How many Raw Material?'], min_value=0, max_value=max_n_ingredients, step=1, key="n_raw_material_ingr")
+        grid_raw_material_ingr = grid_raw_material_ingr_placeholder.columns(2)
+
+        n_semi_finished_prod_ingr = n_semi_finished_prod_ingr_placeholder.number_input(trad['How many Semi-Finished Products?'], min_value=0, max_value=max_n_ingredients, step=1, key="n_semi_finished_prod_ingr")
+        grid_semi_finished_prod_ingr = grid_semi_finished_prod_ingr_placeholder.columns(2)
 
         raw_material_ingredients_placeholders = [grid_raw_material_ingr[0].empty() for _ in range(max_n_ingredients)] # column 1
         raw_materials_ingredient_quantity_placeholders = [grid_raw_material_ingr[1].empty() for _ in range(max_n_ingredients)] # column 2
@@ -63,7 +116,7 @@ def main():
 
         name_options = set([semi_finished_product.name for semi_finished_product in semi_finished_products])
         name_options.add(trad["Another option..."])
-        # name = name_placeholder.text_input(trad["Name"], key="semi_finished_product_name", value=st.session_state.get("form_semi_finished_product", {}).get("name", None)) # todo deve prevedere la selezione dei nomi già inseriti in precedenza
+        # name = name_placeholder.text_input(trad["Name"], key="semi_finished_product_name", value=st.session_state.get("form_semi_finished_product", {}).get("name", None))
 
         name = name_placeholder.selectbox(trad["Name"], key="semi_finished_product_name", options=name_options, index=None)
 
@@ -120,32 +173,7 @@ def main():
         except ValueError:
             index = None
         quantity_unit = quantity_unit_placeholder.selectbox(trad["Unit"], models.QuantityEnum.__members__.keys(), index=index, key="semi_finished_product_quantity_unit")
-        if scansioned_bar_code:
-            # the string is a list of barcodes separated by a newline
-            # each barcode is a string representing a batch number of an ingredient
-            # the batch number is used to identify the ingredient in the database
-            batch_numbers = scansioned_bar_code.split("\n")
-            for batch_number in batch_numbers:
-                if batch_number:
-                    try:
-                        ingredient = models.get_raw_material_by_batch_number(batch_number)
-                        if ingredient:
-                            # add the ingredient to the list of ingredients
-                            # if the ingredient is already in the list, increment the quantity
-                            # if the ingredient is not in the list, add it to the list
-                            pass
-                        else:
-                            ingredient = models.get_semi_finished_product_by_batch_number(batch_number)
-                            if ingredient:
-                                # add the ingredient to the list of ingredients
-                                # if the ingredient is already in the list, increment the quantity
-                                # if the ingredient is not in the list, add it to the list
-                                pass
-                            else:
-                                raise Exception(f"Batch number {batch_number} not found")
-                    except Exception as e:
-                        error = True
-                        st.error(f"Error adding ingredient {e}")
+
 
         # Function to create a row of widgets (with row number input to assure unique keys)
         def add_ingr_placeholder(row, options, key, placeholder, max_quantity_value=None, index=None, value=None):

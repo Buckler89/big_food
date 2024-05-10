@@ -12,6 +12,15 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+	| tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+	&& echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+	| tee /etc/apt/sources.list.d/ngrok.list \
+	&& apt update \
+	&& apt install ngrok
+
+RUN ngrok config add-authtoken 2U3fVfwZmqzhGfulgFtlvAxG41H_7486A8292PiNpatk3Gd9a
+
 COPY pyproject.toml poetry.lock ./
 # install poetry
 RUN pip install poetry

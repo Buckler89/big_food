@@ -318,3 +318,5 @@ if __name__ == '__main__':
     semi_finished_products = query_collection(SemiFinishedProduct, semi_finished_product_collection, **{"name": "C"})
     print()
 
+# todo sviluppa funzione che calcola l'integrità dei dati/quanittà'
+# todo aggiungi prezzi ai materiali e ai prodotti: chiedilo a big foot
