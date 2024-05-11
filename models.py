@@ -374,6 +374,3 @@ if __name__ == '__main__':
     raw_materials = query_collection(RawMaterial, raw_material_collection, **{"name": "L"})
     semi_finished_products = query_collection(SemiFinishedProduct, semi_finished_product_collection, **{"name": "C"})
     print()
-
-# todo sviluppa funzione che calcola l'integrità dei dati/quanittà'
-# todo aggiungi prezzi ai materiali e ai prodotti: chiedilo a big foot

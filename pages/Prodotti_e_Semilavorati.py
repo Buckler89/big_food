@@ -114,8 +114,9 @@ def main():
 
         semi_finished_products = models.query_collection(models.SemiFinishedProduct, models.semi_finished_product_collection, **{})
 
-        name_options = set([semi_finished_product.name for semi_finished_product in semi_finished_products])
-        name_options.add(trad["Another option..."])
+        name_options = [instance.name for instance in semi_finished_products]
+        name_options.insert(0, trad["Another option..."])
+        name_options = list(set(name_options))
         # name = name_placeholder.text_input(trad["Name"], key="semi_finished_product_name", value=st.session_state.get("form_semi_finished_product", {}).get("name", None))
 
         name = name_placeholder.selectbox(trad["Name"], key="semi_finished_product_name", options=name_options, index=None)

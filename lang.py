@@ -585,6 +585,17 @@ t = {
         "ko": "데이터 검색",
         "zh": "数据搜索",
     },
+    "Please reload the page to see the changes in the table and to clear the form": {
+        "en": "Please reload the page to see the changes in the table and to clear the form",
+        "es": "Vuelva a cargar la página para ver los cambios en la tabla y para borrar el formulario",
+        "fr": "Veuillez recharger la page pour voir les modifications dans le tableau et pour effacer le formulaire",
+        "de": "Bitte laden Sie die Seite neu, um die Änderungen in der Tabelle zu sehen und das Formular zu löschen",
+        "it": "Ricarica la pagina per vedere le modifiche nella tabella e per pulire il modulo",
+        "pt": "Recarregue a página para ver as alterações na tabela e para limpar o formulário",
+        "ja": "テーブルの変更を表示し、フォームをクリアするには、ページを再読み込みしてください",
+        "ko": "테이블의 변경 사항을 보려면 페이지를 다시로드하고 양식을 지우십시오",
+        "zh": "请重新加载页面以查看表中的更改并清除表单",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)

@@ -27,50 +27,74 @@ def main():
         suppliers_name_to_id = {supplier.name: supplier.id for supplier in suppliers}
         raw_materials = models.query_collection(models.RawMaterial, models.raw_material_collection, **{})
 
-        # name_options = set([instance.name for instance in raw_materials])
-        # name_options.add(trad["Another option..."])
-        # # name = name_placeholder.text_input(trad["Name"], key="semi_finished_product_name", value=st.session_state.get("form_semi_finished_product", {}).get("name", None))
-        #
-        # name = name_placeholder.selectbox(trad["Name"], key="semi_finished_product_name", options=name_options, index=None)
-        #
-        # # Create text input for user entry
-        # if name == trad["Another option..."]:
-        #     name = name_placeholder.text_input(trad["Enter your other option..."])
+        name_options = [instance.name for instance in raw_materials]
+        name_options.insert(0, trad["Another option..."])
+        name_options = list(set(name_options))
 
-        with st.form(trad["Add Raw Material"], clear_on_submit=True):
-            name = st.text_input(trad["Name"])
-            supplier_name = st.selectbox(trad["Supplier name"], suppliers_id_to_name.values(), index=None)
-            date = st.date_input(trad["acquiring date"], format=lang.datetime_format)
-            expiration_date = st.date_input(trad["Expiration Date"], format=lang.datetime_format)
-            batch_number = st.text_input(trad["Supplier batch number"])
-            document_number = st.text_input(trad["Document Number"])
-            quantity = st.number_input(trad["Quantity"])
-            quantity_unit = st.selectbox(trad["Unit"], models.QuantityEnum.__members__.keys(), index=None)
-            price = st.number_input(trad["Price"], min_value=0.0, format="%.2f")
-            submit = st.form_submit_button(trad["Add Raw Material"])
-            if batch_number.strip().lower() in ["no"]:
-                batch_number = f"N/A-{uuid4().hex[:4]}"
-            if submit:
-                try:
-                    supplier_id = models.supplier_collection.find_one({"name": supplier_name})['_id']
-                    instance = models.RawMaterial(
-                        name=name,
-                        supplier_id=supplier_id,
-                        date=date,
-                        expiration_date=expiration_date,
-                        batch_number=batch_number,
-                        document_number=document_number,
-                        quantity=quantity,
-                        quantity_unit=quantity_unit,
-                        price=price
-                    )
-                    instance.insert()
-                    st.success(trad["Raw Material added successfully"])
-                    st.balloons()
+        # form = st.form(trad["Add Raw Material"], clear_on_submit=True)
+        name_placeholder = st.empty()
+        supplier_name_placeholder = st.empty()
+        date_placeholder = st.empty()
+        expiration_date_placeholder = st.empty()
+        batch_number_placeholder = st.empty()
+        document_number_placeholder = st.empty()
+        quantity_placeholder = st.empty()
+        quantity_unit_placeholder = st.empty()
+        price_placeholder = st.empty()
+        submit_placeholder = st.empty()
 
-                except Exception as e:
-                    error = True
-                    st.error(f"Error adding raw material {e}")
+        # if 'name' not in st.session_state:
+        #     st.session_state.name = None
+        # if 'supplier_name' not in st.session_state:
+        #     st.session_state.supplier_name = None
+        # if 'date' not in st.session_state:
+        #     st.session_state.date = "default_value_today"
+        # if 'expiration_date' not in st.session_state:
+        #     st.session_state.expiration_date = "default_value_today"
+        # if 'batch_number' not in st.session_state:
+        #     st.session_state.batch_number = ""
+        def define_form():
+            name = name_placeholder.selectbox(trad["Name"], options=name_options, index=None)
+            # Create text input for user entry
+            if name == trad["Another option..."]:
+                name = name_placeholder.text_input(trad["Enter your other option..."])
+            # name = name_placeholder.text_input(trad["Name"])
+            supplier_name = supplier_name_placeholder.selectbox(trad["Supplier name"], suppliers_id_to_name.values(), index=None)
+            date = date_placeholder.date_input(trad["acquiring date"], format=lang.datetime_format, )
+            expiration_date = expiration_date_placeholder.date_input(trad["Expiration Date"], format=lang.datetime_format)
+            batch_number = batch_number_placeholder.text_input(trad["Supplier batch number"])
+            document_number = document_number_placeholder.text_input(trad["Document Number"])
+            quantity = quantity_placeholder.number_input(trad["Quantity"])
+            quantity_unit = quantity_unit_placeholder.selectbox(trad["Unit"], models.QuantityEnum.__members__.keys(), index=None)
+            price = price_placeholder.number_input(trad["Price"], min_value=0.0, format="%.2f")
+            submit = submit_placeholder.button(trad["Add Raw Material"])
+            return name, supplier_name, date, expiration_date, batch_number, document_number, quantity, quantity_unit, price, submit
+
+        name, supplier_name, date, expiration_date, batch_number, document_number, quantity, quantity_unit, price, submit = define_form()
+
+        if batch_number.strip().lower() in ["no"]:
+            batch_number = f"N/A-{uuid4().hex[:4]}"
+        if submit:
+            try:
+                supplier_id = models.supplier_collection.find_one({"name": supplier_name})['_id']
+                instance = models.RawMaterial(
+                    name=name,
+                    supplier_id=supplier_id,
+                    date=date,
+                    expiration_date=expiration_date,
+                    batch_number=batch_number,
+                    document_number=document_number,
+                    quantity=quantity,
+                    quantity_unit=quantity_unit,
+                    price=price
+                )
+                instance.insert()
+                st.success(trad["Raw Material added successfully"])
+                st.balloons()
+                st.warning(trad["Please reload the page to see the changes in the table and to clear the form"])
+            except Exception as e:
+                error = True
+                st.error(f"Error adding raw material {e}")
 
         df = models.to_dataframes(raw_materials)  # .drop('_id', axis=1)
         if len(df) > 0:
