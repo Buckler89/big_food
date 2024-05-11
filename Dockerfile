@@ -19,7 +19,9 @@ RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 	&& apt update \
 	&& apt install ngrok
 
-RUN ngrok config add-authtoken 2U3fVfwZmqzhGfulgFtlvAxG41H_7486A8292PiNpatk3Gd9a
+RUN #ngrok config add-authtoken 2U3fVfwZmqzhGfulgFtlvAxG41H_7486A8292PiNpatk3Gd9a # droghini.diego@gmail.com
+RUN ngrok config add-authtoken 2gKsiGQOVdfVTRPleuPDAC5mDnH_3ZMr6WGJTxgmcjnV9HW4e # livafrittaap@gmail.com
+
 
 COPY pyproject.toml poetry.lock ./
 # install poetry
