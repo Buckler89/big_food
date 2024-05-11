@@ -563,6 +563,28 @@ t = {
         "ko": "수동 입력",
         "zh": "手动输入",
     },
+    "Price": {
+        "en": "Price",
+        "es": "Precio",
+        "fr": "Prix",
+        "de": "Preis",
+        "it": "Prezzo",
+        "pt": "Preço",
+        "ja": "価格",
+        "ko": "가격",
+        "zh": "价格",
+    },
+    "Data Search": {
+        "en": "Data Search",
+        "es": "Búsqueda de datos",
+        "fr": "Recherche de données",
+        "de": "Daten suchen",
+        "it": "Ricerca dati",
+        "pt": "Pesquisa de dados",
+        "ja": "データ検索",
+        "ko": "데이터 검색",
+        "zh": "数据搜索",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)

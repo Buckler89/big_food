@@ -62,7 +62,7 @@ def main():
 
     tab1, tab2 = st.tabs([
         trad["Data Entry"],
-        trad["Data Visualization"],
+        trad["Data Search"],
     ])
 
 
@@ -372,35 +372,6 @@ def main():
                     if ingredient_id in semi_finished_products_as_ingredients_id_to_name:
                         update_quantity(ingredient_id, -quantity, models.get_semi_finished_product_by_id)
                 models.delete_semi_finished_product_by_id(semi_finished_products_name_to_id[selection])
-                # --------------------------------------------------------------
-
-
-        # # Filter the dataframe using the temporary column, then drop the column
-        # load_selected = st.button(trad["Load Selected"])
-        # selected_rows = edited_df[edited_df.Select]
-        # if len(selected_rows) > 0:
-        #     selected_row = selected_rows.iloc[0]
-        #     if load_selected:
-        #         st.session_state["form_semi_finished_product"] = dict(
-        #             name=selected_row["name"]
-        #         )
-
-        # todo aggingere tabella con i semilavorati presenti nel database e possibilità di selezionare un semilavorato e "caricarlo" nei campi del form
-
-        # todo possibilità di leggere e generare barcode o qrcode per i semilavorati e i materiali grezzi
-        # con una pistola/telefono si vuole leggere il qrcode ed aggiungerlo in automatico alla lista ingredienti
-        add_vertical_space(200)
-
-        """
-        Un prodotto semilavorato è un prodotto che non è ancora finito, ma che ha subito una certa quantità di lavorazione.
-        Quando si aggiunge un semilavorato al database, oltre ai campi fissi, è necessario specificare i materiali grezzi o i semilavorati che lo compongono e la quantità di ciascuno.
-        Non possono essere usati semilavorati o materiali grezzi che non sono presenti nel database.
-        1) Per prima cosa è necessario recuperare dal database i materiali grezzi e i semilavorati.
-        2) Poi è necessario aggiungere un semilavorato o materiale grezzo alla lista degli ingredienti del semilavorat che si sta aggiungendo.
-        3) Infine è necessario specificare la quantità di ciascun ingrediente.
-        4) il sistema permette di "prelevare" dal magazino i materiali grezzi e semilavorati solo se la quantità presente è sufficiente.
-        5) il sistema permette di "prelevare" dal magazino i materiali grezzi e semilavorati solo non sono scaduti.
-        """
 
 if __name__ == "__main__":
     main()
