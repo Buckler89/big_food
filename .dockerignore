@@ -1,0 +1,8 @@
+mongo-local
+.gitignore
+.git
+README.md
+test*
+docker-compose.yaml
+Dockerfile
+LICENSE.md

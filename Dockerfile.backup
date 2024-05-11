@@ -1,0 +1,7 @@
+FROM mongo:5.0.26
+RUN apt-get update && apt-get install -y cron
+COPY backup.sh /backup.sh
+RUN chmod +x /backup.sh
+# Setup cron job
+RUN (crontab -l ; echo "0 0 * * * /backup.sh") | crontab
+CMD ["cron", "-f"]
