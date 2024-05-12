@@ -47,7 +47,6 @@ def main():
 
         df = models.to_dataframes(suppliers)  # .drop('_id', axis=1)
         if len(df) > 0:
-
             edited_df = dataframe_with_selections(df)
             if st.button(trad["Modify Data"], key="supplier modify data"):
                 edited_df = edited_df.dropna(how='all')

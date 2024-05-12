@@ -114,15 +114,14 @@ def main():
 
         semi_finished_products = models.query_collection(models.SemiFinishedProduct, models.semi_finished_product_collection, **{})
 
-        name_options = [instance.name for instance in semi_finished_products]
-        name_options.insert(0, trad["Another option..."])
-        name_options = list(set(name_options))
+        name_options = list(set([instance.name.strip() for instance in semi_finished_products]))
+        name_options.insert(0, trad["Insert new..."])
         # name = name_placeholder.text_input(trad["Name"], key="semi_finished_product_name", value=st.session_state.get("form_semi_finished_product", {}).get("name", None))
 
         name = name_placeholder.selectbox(trad["Name"], key="semi_finished_product_name", options=name_options, index=None)
 
         # Create text input for user entry
-        if name == trad["Another option..."]:
+        if name == trad["Insert new..."]:
             name = name_placeholder.text_input(trad["Enter your other option..."])
 
         # # Just to show the selected option

@@ -19,10 +19,6 @@ st.page_link("pages/Materie_Prime.py", label=trad["Raw Materials"], icon="🌾")
 st.page_link("pages/Fornitori.py", label=trad["Suppliers"], icon="👨‍🌾")
 st.page_link("http://www.google.com", label=trad["Google"], icon="🌎")
 
-b = st.button(trad["Check db integrity"])
-if b:
-    st.write("Checking db integrity...")
-    models.check_db_integrity()
 
 
 # image = st.camera_input("Show QR code")

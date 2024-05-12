@@ -281,28 +281,50 @@ def to_class(df: pd.DataFrame, constructor) -> List[Union[Supplier, RawMaterial,
     return [constructor(**r) for r in df.to_dict(orient='records')]
 
 
+
+def get_semi_finished_products_that_uses_an_ingredient(ingredient: str) -> List[SemiFinishedProduct]:
+    """
+    Get all semi-finished products that uses a specific ingredient
+    :param ingredient:
+    :type ingredient:
+    :return:
+    :rtype:
+    """
+    semi_finished_products = get_all_semi_finished_products()
+    result = [semi_finished_product for semi_finished_product in semi_finished_products if ingredient in semi_finished_product.ingredients]
+    return result
+
 def check_db_integrity():
     """
     Check the integrity of the database wrt the quantity of raw materials and semi-finished products
     Procedure to be implemented
-    - get all raw materials
-    - get all semi-finished products
-    - for each semi-finished product, check if the ingredients exist and if the quantity was properly consumed
-    """
 
+    """
+    final_error_table = []
+    # check the quantity of raw materials is greater than the quantity used in semi-finished products
+    for raw_material in raw_material_collection.find():
+        semi_finished_products = get_semi_finished_products_that_uses_an_ingredient(raw_material['_id'])
+        # compute the sum of quantity used in semi-finished products
+        quantity_used = sum([semi_finished_product['ingredients'][raw_material['_id']] for semi_finished_product in semi_finished_products])
+        if raw_material['quantity'] < quantity_used:
+            print(f"Error: the quantity of raw material {raw_material['name']} is greater than the quantity used in semi-finished products")
+            final_error_table.append({'raw_material': raw_material['name'], 'quantity': raw_material['quantity'], 'quantity_used': quantity_used})
     for semi_finished_product in semi_finished_product_collection.find():
-        for ingredient_id, quantity in semi_finished_product['ingredients'].items():
-            raw_material = raw_material_collection.find_one({'_id': ingredient_id})
-            if raw_material:
-                if raw_material['quantity'] < quantity:
-                    print(f"Error: the quantity of raw material {raw_material['name']} is less than the quantity used in semi-finished product {semi_finished_product['name']}")
-            else:
-                semi_finished_product = semi_finished_product_collection.find_one({'_id': ingredient_id})
-                if semi_finished_product:
-                    if semi_finished_product['quantity'] < quantity:
-                        print(f"Error: the quantity of semi-finished product {semi_finished_product['name']} is less than the quantity used in semi-finished product {semi_finished_product['name']}")
-                else:
-                    print(f"Error: the ingredient {ingredient_id} does not exist")
+        # check all ingredients exist
+        for ingredient in semi_finished_product['ingredients']:
+            if (not raw_material_collection.find_one({'_id':  ObjectId(ingredient)}) and
+                    not semi_finished_product_collection.find_one({'_id':  ObjectId(ingredient)})):
+                print(f"Error: the ingredient {ingredient} does not exist in the database")
+                final_error_table.append({'semi_finished_product': semi_finished_product['name'], 'ingredient': ingredient})
+        # check the quantity of raw materials is greater than the quantity used in semi-finished products
+        semi_finished_products = get_semi_finished_products_that_uses_an_ingredient(semi_finished_product['_id'])
+        # compute the sum of quantity used in semi-finished products
+        quantity_used = sum([semi_finished_product['ingredients'][semi_finished_product['_id']] for semi_finished_product in semi_finished_products])
+        if semi_finished_product['quantity'] < quantity_used:
+            print(f"Error: the quantity of semi-finished product {semi_finished_product['name']} is greater than the quantity used in semi-finished products")
+            final_error_table.append({'semi_finished_product': semi_finished_product['name'], 'quantity': semi_finished_product['quantity'], 'quantity_used': quantity_used})
+
+    return final_error_table
 
 if __name__ == '__main__':
     # USAGE EXAMPLE

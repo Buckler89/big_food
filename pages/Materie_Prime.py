@@ -27,9 +27,9 @@ def main():
         suppliers_name_to_id = {supplier.name: supplier.id for supplier in suppliers}
         raw_materials = models.query_collection(models.RawMaterial, models.raw_material_collection, **{})
 
-        name_options = [instance.name for instance in raw_materials]
-        name_options.insert(0, trad["Another option..."])
-        name_options = list(set(name_options))
+        name_options = list(set([instance.name.strip() for instance in raw_materials]))
+        name_options.insert(0, trad["Insert new..."])
+
 
         # form = st.form(trad["Add Raw Material"], clear_on_submit=True)
         name_placeholder = st.empty()
@@ -56,7 +56,7 @@ def main():
         def define_form():
             name = name_placeholder.selectbox(trad["Name"], options=name_options, index=None)
             # Create text input for user entry
-            if name == trad["Another option..."]:
+            if name == trad["Insert new..."]:
                 name = name_placeholder.text_input(trad["Enter your other option..."])
             # name = name_placeholder.text_input(trad["Name"])
             supplier_name = supplier_name_placeholder.selectbox(trad["Supplier name"], suppliers_id_to_name.values(), index=None)
@@ -172,11 +172,14 @@ def main():
             semi_finished_products_name_to_id = o[2]
         with col2:
             # load_selected = st.button(trad["Load Selected"])
-            delete_selected = st.button(trad["Delete this product"])
+            delete_selected_button_placeholder = st.empty()
             if selection:
-                element = models.get_raw_material_by_id(
-                    semi_finished_products_name_to_id[selection])
+                delete_selected = delete_selected_button_placeholder.button(trad["Delete this product"])
+
+                element = models.get_raw_material_by_id(semi_finished_products_name_to_id[selection])
                 qi = element.quantity_unit.value
+                # get supplier name
+                sn = models.get_supplier_by_id(element.supplier_id).name
 
                 # create a vertical markdown table with all the semi-finished product data and ingredients
                 # with st.sidebar:
@@ -190,26 +193,26 @@ def main():
                     | {trad["Quantity"]} | {element.quantity} |
                     | {trad["Unit"]} | {qi} |
                     | {trad["Price"]} | {element.price} |
-                    | {trad["Supplier name"]} | {element.supplier_id} |
+                    | {trad["Supplier name"]} | {sn} |
                     | {trad["Document Number"]} | {element.document_number} |
                     | {trad["Consumed Quantity"]} | {element.consumed_quantity} |
                     | {trad["Finished"]} | {element.is_finished} |
                     """)
 
-            if delete_selected and selection:
-                # before deleting the product, we need to check if it is used in any semi-finished product
-                # if it is, we cannot delete it
-                semi_finished_products = models.query_collection(models.SemiFinishedProduct, models.semi_finished_product_collection, **{})
-                used_in_semi_finished_products = []
-                for semi_finished_product in semi_finished_products:
-                    if selection in semi_finished_product.ingredients:
-                        used_in_semi_finished_products.append(semi_finished_product.name)
-                if len(used_in_semi_finished_products) > 0:
-                    st.error(f"{trad['Cannot delete raw material']} {trad['used in']} {used_in_semi_finished_products}")
-                else:
-                    models.delete_raw_material_by_id(semi_finished_products_name_to_id[selection])
-                    st.success(f"{trad['Raw Material']} {selection} {trad['deleted successfully']}")
-                    st.balloons()
+                if delete_selected:
+                    # before deleting the product, we need to check if it is used in any semi-finished product
+                    # if it is, we cannot delete it
+                    semi_finished_products = models.query_collection(models.SemiFinishedProduct, models.semi_finished_product_collection, **{})
+                    used_in_semi_finished_products = []
+                    for semi_finished_product in semi_finished_products:
+                        if selection in semi_finished_product.ingredients:
+                            used_in_semi_finished_products.append(semi_finished_product.name)
+                    if len(used_in_semi_finished_products) > 0:
+                        st.error(f"{trad['Cannot delete raw material']} {trad['used in']} {used_in_semi_finished_products}")
+                    else:
+                        models.delete_raw_material_by_id(semi_finished_products_name_to_id[selection])
+                        st.success(f"{trad['Raw Material']} {selection} {trad['deleted successfully']}")
+                        st.balloons()
 
 
 
