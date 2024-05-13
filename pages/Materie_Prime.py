@@ -95,6 +95,7 @@ def main():
             except Exception as e:
                 error = True
                 st.error(f"Error adding raw material {e}")
+                raise e
 
         df = models.to_dataframes(raw_materials)  # .drop('_id', axis=1)
         if len(df) > 0:

@@ -1,0 +1,21 @@
+services:
+
+  # service configuration for mongo database.
+  mongo:
+
+    restart: never
+#  backup:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.backup
+#    volumes:
+#      - ./mongo_backups:/backup
+#    depends_on:
+#      - mongo
+#  # streamlit app configuration
+  app:
+    command: /bin/bash -c "streamlit run Home.py --server.port 8501 & ngrok http --domain=solid-jaybird-typically.ngrok-free.app 8501 --oauth google --oauth-allow-email droghini.diego@gmail.com,chiarella251290@gmail.com,danifediascoli@gmail.com,livafrittaap@gmail.com"
+    restart: never
+
+  mongo-express:
+    restart: never
