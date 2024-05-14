@@ -15,6 +15,11 @@ if b:
         st.error(trad["Errors found"])
         st.write(final_error_table)
 
+b = st.button(trad["Fix db integrity"])
+if b:
+    st.write(trad["Fixing db integrity..."])
+    models.fix_db_strip()
+    st.success(trad["Database integrity fixed"])
 
 
 #

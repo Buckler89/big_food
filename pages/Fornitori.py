@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(layout="wide")
 import models
 import lang
 from utils import generate_barcode, dataframe_with_selections

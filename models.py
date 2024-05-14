@@ -243,7 +243,7 @@ def delete_semi_finished_product_by_id(semi_finished_product_id: str) -> bool:
     return result.deleted_count > 0
 
 
-def query_collection(constructor, collection, mode='AND', **kwargs) -> List[Union[Supplier, RawMaterial, SemiFinishedProduct]]:
+def query_collection(constructor, collection, mode='AND', as_dict: bool = False, **kwargs) -> List[Union[Supplier, RawMaterial, SemiFinishedProduct]]:
 
     if mode == 'AND':
         query = {}
@@ -267,12 +267,19 @@ def query_collection(constructor, collection, mode='AND', **kwargs) -> List[Unio
     if mode == 'OR':
         query = {"$or": query} if query else {}
     results = collection.find(query)
-    instances = [constructor(**r) for r in results] if results else []
+    if not as_dict:
+        instances = [constructor(**r) for r in results] if results else []
+    else:
+        instances = [r for r in results] if results else []
     return instances
 
 
-def to_dataframes(instances: List[Union[Supplier, RawMaterial, SemiFinishedProduct]]) -> pd.DataFrame:
-    as_dict = [r.dict(by_alias=True) for r in instances]
+def to_dataframes(instances: List[Union[Supplier, RawMaterial, SemiFinishedProduct, Dict]]) -> pd.DataFrame:
+    # if instances is a list of dictionaries then convert it to a DataFrame else convert it to a list of dictionaries
+    if not isinstance(instances[0], dict):
+        as_dict = [r.dict(by_alias=True) for r in instances]
+    else:
+        as_dict = instances
     df = pd.DataFrame(as_dict)
     return df
 
@@ -325,6 +332,19 @@ def check_db_integrity():
             final_error_table.append({'semi_finished_product': semi_finished_product['name'], 'quantity': semi_finished_product['quantity'], 'quantity_used': quantity_used})
 
     return final_error_table
+
+def fix_db_strip():
+    """
+    Traverse the entire db and strip all string fields
+    :return:
+    :rtype:
+    """
+    for collection in [supplier_collection, raw_material_collection, semi_finished_product_collection]:
+        for record in collection.find():
+            for key, value in record.items():
+                if isinstance(value, str):
+                    collection.update_one({'_id': record['_id']}, {'$set': {key: value.strip()}})
+
 
 if __name__ == '__main__':
     # USAGE EXAMPLE
