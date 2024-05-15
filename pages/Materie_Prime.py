@@ -115,7 +115,7 @@ def main():
                 },
                 disabled=["consumed_quantity", "is_finished"]
             )
-            if st.button("Modify Data", key="raw_materials modify data"):
+            if st.button(trad["Modify Data"], key="raw_materials modify data"):
                 edited_df = edited_df.dropna(how='all')
                 try:
                     deleted_rows = edited_df[edited_df["delete"] == True]
