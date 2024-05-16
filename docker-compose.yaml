@@ -34,8 +34,7 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017/mydb
 #    command: streamlit run Home.py --server.port 8501
-#    command: /bin/bash -c "streamlit run Home.py --server.port 8501 & ngrok http --domain=solid-jaybird-typically.ngrok-free.app 8501 --oauth google --oauth-allow-email droghini.diego@gmail.com,chiarella251290@gmail.com,danifediascoli@gmail.com,livafrittaap@gmail.com"
-    command: /bin/bash -c "streamlit run Home.py --server.port 8501 & ngrok http --domain=excited-racer-concrete.ngrok-free.app 8501 --oauth google --oauth-allow-email droghini.diego@gmail.com,chiarella251290@gmail.com,danifediascoli@gmail.com,livafrittaap@gmail.com"
+    command: /bin/bash -c "streamlit run Home.py --server.port 8501 & ngrok http --domain=${NGROK_DOMAIN}  8501 --oauth google --oauth-allow-email ${OAUTH_ALLOW_EMAIL}"
     restart: always
 
   mongo-express:
