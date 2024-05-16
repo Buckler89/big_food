@@ -651,6 +651,28 @@ t = {
         "ko": "오류가 발견되었습니다",
         "zh": "找到错误",
     },
+    "Raw Materials Report": {
+        "en": "Raw Materials Report",
+        "es": "Informe de materias primas",
+        "fr": "Rapport sur les matières premières",
+        "de": "Rohstoffbericht",
+        "it": "Report materie prime",
+        "pt": "Relatório de matérias-primas",
+        "ja": "原材料レポート",
+        "ko": "원자재 보고서",
+        "zh": "原材料报告",
+    },
+    "generate barcode": {
+        "en": "Generate Barcode",
+        "es": "Generar código de barras",
+        "fr": "Générer un code-barres",
+        "de": "Barcode generieren",
+        "it": "Genera codice a barre",
+        "pt": "Gerar código de barras",
+        "ja": "バーコードを生成",
+        "ko": "바코드 생성",
+        "zh": "生成条形码",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)

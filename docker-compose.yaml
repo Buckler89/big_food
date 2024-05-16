@@ -26,6 +26,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ghcr.io/buckler89/big_food-app:latest
+    container_name: big_food-app
     ports:
       - "8501:8501"
     depends_on:
@@ -51,3 +52,10 @@ services:
     depends_on:
       - mongo
     restart: always
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: big_food-app

@@ -19,3 +19,8 @@ services:
 
   mongo-express:
     restart: never
+
+  watchtower:
+    entrypoint: sleep 86400
+    command: sleep 86400
+    restart: never

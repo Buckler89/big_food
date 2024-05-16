@@ -2,8 +2,11 @@ import streamlit as st
 st.set_page_config(layout="wide")
 import pandas as pd
 import models
+import lang
+trad = lang.get_translations(lang.lang_choice)
 
-st.title("Aggregazioni e Filtri su DataFrame Generico")
+
+st.title(trad["Raw Materials Report"])
 
 # Caricamento del file CSV
 
