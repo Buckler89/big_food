@@ -32,6 +32,14 @@ df.drop("_id", axis=1, inplace=True)
 
 # Selezione delle colonne per il filtro
 st.sidebar.subheader("Filtri")
+start_date = st.sidebar.date_input(trad["Start date"], value=None)
+end_date = st.sidebar.date_input(trad["End date"], value=None)
+if start_date and end_date:
+    # datetime to datetime64[ns]
+    start_date = pd.to_datetime(start_date)
+    end_date = pd.to_datetime(end_date)
+    df = df[(df["date"] >= start_date) & (df["date"] <= end_date)]
+
 filter_columns = st.sidebar.multiselect("Seleziona le colonne per il filtro", df.columns)
 
 filtered_df = df.copy()
@@ -52,7 +60,6 @@ agg_func = st.sidebar.multiselect("Seleziona la funzione di aggregazione", ["sum
 st.sidebar.subheader("Raggruppamento")
 group_columns = st.sidebar.multiselect("Seleziona le colonne per il raggruppamento", df.columns, default=["quantity_unit", "supplier_name", "name"])
 
-
 if st.sidebar.button("Applica aggregazione"):
     aggr_config = {ac: af for ac, af in zip(agg_column, agg_func)}
     if group_columns:
@@ -62,7 +69,8 @@ if st.sidebar.button("Applica aggregazione"):
         aggregated_df = filtered_df.agg(aggr_config)
 else:
     aggregated_df = filtered_df
-
+if "price" in agg_column:
+    aggregated_df["total_price"] = aggregated_df["quantity"] * aggregated_df["price"]
 aggregated_df = aggregated_df.dropna(how="all")
 # riordina le colonne
 # aggregated_df = aggregated_df[group_columns + agg_column]

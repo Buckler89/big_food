@@ -12,15 +12,9 @@ services:
       - ./mongo_backups:/backup
 #    command: [ "mongod", "--bind_ip_all" ]
     restart: always
-#  backup:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.backup
-#    volumes:
-#      - ./mongo_backups:/backup
-#    depends_on:
-#      - mongo
-#  # streamlit app configuration
+
+
+  # streamlit app configuration
   app:
     build:
       context: .
