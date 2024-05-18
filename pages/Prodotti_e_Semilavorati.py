@@ -169,11 +169,12 @@ def main():
 
         expiration_date = expiration_date_placeholder.date_input(trad["Expiration Date"], key="semi_finished_product_expiration_date", format=lang.datetime_format, value=st.session_state.get("form_semi_finished_product", {}).get("expiration_date", None))
         if prod_date is not None:
-            bn = f'{prod_date.strftime("%Y%m%d")}-{str(uuid4().int)[:4]}'
+            bn = f'{prod_date.strftime("%y%m%d")}{str(uuid4().int)[:4]}'
         else:
             bn = None
         st.session_state["semi_finished_product_batch_number"] = bn
-        batch_number = batch_number_placeholder.text_input(trad["batch number"],  key="semi_finished_product_batch_number", value=st.session_state["semi_finished_product_batch_number"], disabled=True)#st.session_state.get("form_semi_finished_product", {}).get("batch_number", None))
+        batch_number = batch_number_placeholder.text_input(trad["batch number"],  key="semi_finished_product_batch_number", disabled=True)#st.session_state.get("form_semi_finished_product", {}).get("batch_number", None))
+
         quantity = quantity_placeholder.number_input(trad["Quantity"], key="semi_finished_product_quantity", value=st.session_state.get("form_semi_finished_product", {}).get("quantity", None))
         try:
             index = list(models.QuantityEnum).index(st.session_state.get("form_semi_finished_product", {}).get("quantity_unit", None))

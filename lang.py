@@ -673,6 +673,17 @@ t = {
         "ko": "바코드 생성",
         "zh": "生成条形码",
     },
+    "available": {
+        "en": "available",
+        "es": "disponible",
+        "fr": "disponible",
+        "de": "verfügbar",
+        "it": "disponibile",
+        "pt": "disponível",
+        "ja": "利用可能",
+        "ko": "사용 가능",
+        "zh": "可用",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)

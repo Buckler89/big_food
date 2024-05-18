@@ -1,9 +1,6 @@
 import streamlit as st
 st.set_page_config(page_title="Big Food", page_icon="https://www.livafritta.it/wp-content/uploads/2019/12/cropped-favicon-04-32x32.png", layout="wide")
-
 import lang
-import models
-import numpy as np
 
 # Initialization
 trad = lang.get_translations(lang.lang_choice)
