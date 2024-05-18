@@ -6,6 +6,7 @@ from datetime import datetime
 import models
 import lang
 from utils import manage_barcode
+from uuid import uuid4
 # Initialization
 trad = lang.get_translations(lang.lang_choice)
 
@@ -131,14 +132,14 @@ def main():
         # else:
         #     st.info(f":white_check_mark: The written option is {otherOption} ")
 
-        date = date_placeholder.date_input(trad["Production Date"], key="semi_finished_product_date", format=lang.datetime_format, value=st.session_state.get("form_semi_finished_product", {}).get("date", None))  # this must be before the query since it is used to filter the expiration date
-        if date:
-            date = datetime.combine(date, datetime.min.time())
+        prod_date = date_placeholder.date_input(trad["Production Date"], key="semi_finished_product_date", format=lang.datetime_format, value=st.session_state.get("form_semi_finished_product", {}).get("date", None))  # this must be before the query since it is used to filter the expiration date
+        if prod_date:
+            prod_date = datetime.combine(prod_date, datetime.min.time())
         # if st.session_state.get("form_semi_finished_product") is None:
         semi_finished_products_as_ingredients = models.query_collection(models.SemiFinishedProduct,
                                                                         models.semi_finished_product_collection, **{
                 "is_finished": False,
-                "expiration_date": {"$gte": date if date is not None else datetime.now()}
+                "expiration_date": {"$gte": prod_date if prod_date is not None else datetime.now()}
             })
         semi_finished_products_as_ingredients_id_to_name = {semi_finished_product.id: f"{semi_finished_product.name} - {semi_finished_product.batch_number}" for
                                              semi_finished_product in semi_finished_products_as_ingredients}
@@ -147,7 +148,7 @@ def main():
 
         raw_materials = models.query_collection(models.RawMaterial, models.raw_material_collection, **{
                 "is_finished": False,
-                "expiration_date": {"$gte": date if date is not None else datetime.now()}
+                "expiration_date": {"$gte": prod_date if prod_date is not None else datetime.now()}
             })
         raw_materials_id_to_name = {raw_material.id: f"{raw_material.name} - {raw_material.batch_number}" for raw_material in raw_materials}
         raw_materials_name_to_id = {f"{raw_material.name} - {raw_material.batch_number}": raw_material.id for raw_material in raw_materials}
@@ -167,7 +168,12 @@ def main():
             #     pass
 
         expiration_date = expiration_date_placeholder.date_input(trad["Expiration Date"], key="semi_finished_product_expiration_date", format=lang.datetime_format, value=st.session_state.get("form_semi_finished_product", {}).get("expiration_date", None))
-        batch_number = batch_number_placeholder.text_input(trad["batch number"],  key="semi_finished_product_batch_number", value=st.session_state.get("form_semi_finished_product", {}).get("batch_number", None))
+        if prod_date is not None:
+            bn = f'{prod_date.strftime("%Y%m%d")}-{str(uuid4().int)[:4]}'
+        else:
+            bn = None
+        st.session_state["semi_finished_product_batch_number"] = bn
+        batch_number = batch_number_placeholder.text_input(trad["batch number"],  key="semi_finished_product_batch_number", value=st.session_state["semi_finished_product_batch_number"], disabled=True)#st.session_state.get("form_semi_finished_product", {}).get("batch_number", None))
         quantity = quantity_placeholder.number_input(trad["Quantity"], key="semi_finished_product_quantity", value=st.session_state.get("form_semi_finished_product", {}).get("quantity", None))
         try:
             index = list(models.QuantityEnum).index(st.session_state.get("form_semi_finished_product", {}).get("quantity_unit", None))
@@ -266,7 +272,7 @@ def main():
                         # quantity_unit=st.session_state["form_semi_finished_product"]["quantity_unit"],
                         # ingredients=all_ingredients,
                         name=name,
-                        date=date,
+                        date=prod_date,
                         expiration_date=expiration_date,
                         batch_number=batch_number,
                         quantity=quantity,
