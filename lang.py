@@ -695,6 +695,17 @@ t = {
         "ko": "양식 지우기",
         "zh": "清除表格",
     },
+    "scan barcode": {
+        "en": "Scan Barcode",
+        "es": "Escanear código de barras",
+        "fr": "Scanner le code-barres",
+        "de": "Barcode scannen",
+        "it": "Scansiona codice a barre",
+        "pt": "Escanear código de barras",
+        "ja": "バーコードをスキャン",
+        "ko": "바코드 스캔",
+        "zh": "扫描条形码",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)
