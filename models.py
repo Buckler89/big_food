@@ -67,12 +67,13 @@ class B(BaseModel):
                     mydb[self._collection_name].update_one({self._unique_field_name: unique_field}, {'$set': q})
                     print(f"{self._collection_name} {unique_field} updated successfully")
                 else:
-                    raise Exception(f"The {self._unique_field_name}={unique_field} already exists in {self._collection_name} collection. Update not allowed")
+                    raise ValueError(f"The {self._unique_field_name}={unique_field} already exists in {self._collection_name} collection. Update not allowed")
             else:
                 record = mydb[self._collection_name].insert_one(q)
         except Exception as e:
             print(e)
             record = None
+            raise e
         return record
 
 
@@ -136,7 +137,8 @@ class RawMaterial(B):
         if self.batch_number is None or self.batch_number == '':
             raise ValueError("The batch number cannot be empty")
         # check ot exist another raw material with the same fields
-
+        # if self.price is None or self.price <= 0:
+        #     raise ValueError("The price must be greater than zero")
         return values
 
 
@@ -307,16 +309,29 @@ def check_db_integrity():
     Procedure to be implemented
 
     """
+    import streamlit as st
+    import time
+    progress_text = "Operation in progress. Please wait."
+    my_bar = st.progress(0, progress_text)
     final_error_table = []
     # check the quantity of raw materials is greater than the quantity used in semi-finished products
-    for raw_material in raw_material_collection.find():
+    raw_materials = list(raw_material_collection.find())
+    l = len(raw_materials)
+    for i, raw_material in enumerate(raw_materials):
+        time.sleep(0.1)
+        my_bar.progress(100//l * (i+1), text=progress_text)
         semi_finished_products = get_semi_finished_products_that_uses_an_ingredient(raw_material['_id'])
         # compute the sum of quantity used in semi-finished products
         quantity_used = sum([semi_finished_product['ingredients'][raw_material['_id']] for semi_finished_product in semi_finished_products])
         if raw_material['quantity'] < quantity_used:
             print(f"Error: the quantity of raw material {raw_material['name']} is greater than the quantity used in semi-finished products")
             final_error_table.append({'raw_material': raw_material['name'], 'quantity': raw_material['quantity'], 'quantity_used': quantity_used})
-    for semi_finished_product in semi_finished_product_collection.find():
+    my_bar.progress(0, text=progress_text)
+    semi_finished_products = list(semi_finished_product_collection.find())
+    l = len(semi_finished_products)
+    for i, semi_finished_product in enumerate(semi_finished_products):
+        time.sleep(0.1)
+        my_bar.progress(100//l * (i+1), text=progress_text)
         # check all ingredients exist
         for ingredient in semi_finished_product['ingredients']:
             if (not raw_material_collection.find_one({'_id':  ObjectId(ingredient)}) and
@@ -339,7 +354,12 @@ def fix_db_strip():
     :return:
     :rtype:
     """
-    for collection in [supplier_collection, raw_material_collection, semi_finished_product_collection]:
+    import streamlit as st
+    import time
+    progress_text = "Operation in progress. Please wait."
+    my_bar = st.progress(0, progress_text)
+    for i, collection in enumerate([supplier_collection, raw_material_collection, semi_finished_product_collection]):
+        my_bar.progress(100//3 * (i+1), text=progress_text)
         for record in collection.find():
             for key, value in record.items():
                 if isinstance(value, str):

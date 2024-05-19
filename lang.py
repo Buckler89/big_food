@@ -684,6 +684,17 @@ t = {
         "ko": "사용 가능",
         "zh": "可用",
     },
+    "Clear Form": {
+        "en": "Clear Form",
+        "es": "Borrar formulario",
+        "fr": "Effacer le formulaire",
+        "de": "Formular löschen",
+        "it": "Cancella modulo",
+        "pt": "Limpar formulário",
+        "ja": "フォームをクリア",
+        "ko": "양식 지우기",
+        "zh": "清除表格",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)

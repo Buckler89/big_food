@@ -4,7 +4,7 @@ from bson.objectid import ObjectId
 import models
 import lang
 from uuid import uuid4
-
+from streamlit_js_eval import streamlit_js_eval
 from utils import dataframe_with_selections, manage_barcode
 # Initialization
 trad = lang.get_translations(lang.lang_choice)
@@ -43,6 +43,9 @@ def main():
         quantity_unit_placeholder = st.empty()
         price_placeholder = st.empty()
         submit_placeholder = st.empty()
+
+        if st.button(trad["Clear Form"]):
+            streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
         # if 'name' not in st.session_state:
         #     st.session_state.name = None
