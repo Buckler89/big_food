@@ -156,6 +156,7 @@ class SemiFinishedProduct(B):
     consumed_quantity: float = 0
     quantity_unit: QuantityEnum
     is_finished: bool = False
+    done: bool = False
 
     ingredients: Dict[PydanticObjectId, Union[int, float]]  # list of name of RawMaterial or SemiFinishedProduct and relative used quantity
 
@@ -180,6 +181,9 @@ class SemiFinishedProduct(B):
                 raise ValueError("The ingredient does not exist")
         if self.batch_number is None or self.batch_number == '':
             raise ValueError("The batch number cannot be empty")
+        if "done" not in self.__fields_set__:
+            self.__setattr__("done", False)
+            self.insert(update=True)
         return values
 
 
@@ -190,7 +194,7 @@ def get_supplier_by_id(supplier_id: str) -> Union[Supplier, None]:
     return None
 
 
-def get_raw_material_by_id(raw_material_id: str) -> Union[RawMaterial, None]:
+def get_raw_material_by_id(raw_material_id: Union[str, ObjectId]) -> Union[RawMaterial, None]:
     raw_material = raw_material_collection.find_one({'_id': ObjectId(raw_material_id)})
     if raw_material:
         return RawMaterial(**raw_material)
@@ -204,7 +208,7 @@ def get_raw_material_by_batch_number(batch_number: str) -> Union[RawMaterial, No
     return None
 
 
-def get_semi_finished_product_by_id(semi_finished_product_id: str) -> Union[SemiFinishedProduct, None]:
+def get_semi_finished_product_by_id(semi_finished_product_id: Union[str, ObjectId]) -> Union[SemiFinishedProduct, None]:
     semi_finished_product = semi_finished_product_collection.find_one({'_id': ObjectId(semi_finished_product_id)})
     if semi_finished_product:
         return SemiFinishedProduct(**semi_finished_product)
@@ -245,29 +249,30 @@ def delete_semi_finished_product_by_id(semi_finished_product_id: str) -> bool:
     return result.deleted_count > 0
 
 
-def query_collection(constructor, collection, mode='AND', as_dict: bool = False, **kwargs) -> List[Union[Supplier, RawMaterial, SemiFinishedProduct]]:
+def query_collection(constructor, collection, mode='AND', as_dict: bool = False, query=None, **kwargs) -> List[Union[Supplier, RawMaterial, SemiFinishedProduct]]:
 
-    if mode == 'AND':
-        query = {}
-    elif mode == 'OR':
-        query = []
-    else:
-        raise ValueError("Invalid mode. Choose between 'AND' or 'OR'")
-    for key, value in kwargs.items():
-        if key not in constructor.__fields__:
-            raise ValueError(f"Invalid field {key}")
+    if query is None:
         if mode == 'AND':
-            if isinstance(value, str):
-                query[key] = {"$regex": value, "$options": "i"} # AND format
-            else:
-                query[key] = value
+            query = {}
         elif mode == 'OR':
-            if isinstance(value, str):
-                query.append({key: {"$regex": value, "$options": "i"}})  # OR format
-            else:
-                query.append({key: value})
-    if mode == 'OR':
-        query = {"$or": query} if query else {}
+            query = []
+        else:
+            raise ValueError("Invalid mode. Choose between 'AND' or 'OR'")
+        for key, value in kwargs.items():
+            if key not in constructor.__fields__:
+                raise ValueError(f"Invalid field {key}")
+            if mode == 'AND':
+                if isinstance(value, str):
+                    query[key] = {"$regex": value, "$options": "i"} # AND format
+                else:
+                    query[key] = value
+            elif mode == 'OR':
+                if isinstance(value, str):
+                    query.append({key: {"$regex": value, "$options": "i"}})  # OR format
+                else:
+                    query.append({key: value})
+        if mode == 'OR':
+            query = {"$or": query} if query else {}
     results = collection.find(query)
     if not as_dict:
         instances = [constructor(**r) for r in results] if results else []

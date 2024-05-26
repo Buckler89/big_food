@@ -18,6 +18,7 @@ streamlit-extras = "^0.4.2"
 qrcode = "^7.4.2"
 pyzbar = "^0.1.9"
 streamlit-js-eval = "^0.1.7"
+reportlab = "^4.2.0"
 
 
 [build-system]

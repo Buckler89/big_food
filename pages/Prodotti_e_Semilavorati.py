@@ -1,4 +1,7 @@
 import streamlit as st
+
+import utils
+
 st.set_page_config(layout="wide")
 from streamlit_extras.stylable_container import stylable_container
 from streamlit_extras.add_vertical_space import add_vertical_space
@@ -13,8 +16,19 @@ trad = lang.get_translations(lang.lang_choice)
 st.sidebar.image("https://www.livafritta.it/wp-content/uploads/2020/02/logo-livafritta-01.png")
 max_n_ingredients = 30
 
+raw_materials = models.query_collection(models.RawMaterial, models.raw_material_collection, **{})
+raw_materials_id_to_name = {raw_material.id: raw_material.name for raw_material in raw_materials}
+raw_materials_name_to_id = {raw_material.name: raw_material.id for raw_material in raw_materials}
 
-def manage_barcode_reader(n_semi_finished_prod_ingr_placeholder):
+semi_finished_products = models.query_collection(models.SemiFinishedProduct, models.semi_finished_product_collection, **{})
+semi_finished_products_id_to_name = {
+    semi_finished_product.id: f"{semi_finished_product.name} - {semi_finished_product.batch_number}" for
+    semi_finished_product in semi_finished_products}
+semi_finished_products_as_ingredients_name_to_id = {
+    f"{semi_finished_product.name} - {semi_finished_product.batch_number}": semi_finished_product.id for
+    semi_finished_product in semi_finished_products}
+
+def manage_barcode_reader():
     barcode = st.session_state.scansioned_bar_code
     print(barcode)
     # Aggiorna il valore di un altro widget tramite session_state
@@ -22,13 +36,10 @@ def manage_barcode_reader(n_semi_finished_prod_ingr_placeholder):
         try:
 
             # Imposta il valore di session_state per il numero
-            st.session_state.n_raw_material_ingr += 1  # esempio di calcolo
-            st.session_state.scansioned_bar_code = ""  # esempio di calcolo
-            # the string is a list of barcodes separated by a newline
-            # each barcode is a string representing a batch number of an ingredient
-            # the batch number is used to identify the ingredient in the database
-            # st.session_state[f"ingredient_{row}{key}"]
-            st.session_state[f"ingredient_{st.session_state.n_raw_material_ingr - 1}grid_raw_material_ingr"] = 'carne di suino - 2939340'
+            st.session_state.n_raw_material_ingr += 1
+            st.session_state.scansioned_bar_code = ""
+
+            # st.session_state[f"ingredient_{st.session_state.n_raw_material_ingr - 1}grid_raw_material_ingr"] = 'carne di suino - 2939340'
             try:
                 ingredient = models.get_raw_material_by_batch_number(barcode)
                 if ingredient:
@@ -58,6 +69,74 @@ def manage_barcode_reader(n_semi_finished_prod_ingr_placeholder):
             st.error("Please enter a valid number for barcode.")
 
 
+def load_selected():
+    selection = st.session_state.get("semi_finished_product_selection")
+    if selection:
+        n, b = selection.rsplit("-", maxsplit=1)
+        st.session_state.semi_finished_product_name = n
+        st.session_state.semi_finished_product_batch_number = b
+        semi_finished_product = models.query_collection(models.SemiFinishedProduct, models.semi_finished_product_collection, **{"name": n, "batch_number": b})[0]
+        if semi_finished_product:
+            st.session_state.form_semi_finished_product = semi_finished_product.dict()
+            st.session_state.semi_finished_product_quantity = semi_finished_product.quantity
+            st.session_state.semi_finished_product_quantity_unit = semi_finished_product.quantity_unit.name
+            st.session_state.semi_finished_product_done = semi_finished_product.done
+            st.session_state.form_semi_finished_product["all_ingredients_raw_material"] = {}
+            st.session_state.form_semi_finished_product["all_ingredients_semi_finished_product"] = {}
+            st.session_state.form_semi_finished_product["all_ingredients"] = {}
+
+            # get all ingredients
+            for ingredient_id, quantity in semi_finished_product.ingredients.items():
+                ingredient = models.get_raw_material_by_id(ingredient_id)
+                if ingredient is not None:
+                    st.session_state.n_raw_material_ingr += 1
+                    st.session_state.form_semi_finished_product["all_ingredients_raw_material"][raw_materials_id_to_name[ingredient_id]] = quantity
+                    st.session_state[
+                        f"ingredient_{st.session_state.n_raw_material_ingr - 1}grid_raw_material_ingr"] = \
+                        f"{ingredient.name} - {ingredient.batch_number}"
+                    st.session_state[
+                        f"ingredient_quantity_{st.session_state.n_raw_material_ingr - 1}grid_raw_material_ingr"] = quantity
+                    try:
+                        st.session_state.max_quantity_value_raw_material[
+                            f"{ingredient.name} - {ingredient.batch_number}"] += quantity # restore the consumed quantity temporarily
+                    except KeyError: # means that the ingredient was not in the list of ingredients since it is expired cosidering the fileter of today. But is is ok once we load a product with a production date since the ifletr wilb be done with the procuction date insead later in the code
+                        expired_ingredient = models.get_raw_material_by_id(ingredient_id)
+                        if expired_ingredient:
+                            st.session_state.max_quantity_value_raw_material[
+                                f"{expired_ingredient.name} - {expired_ingredient.batch_number}"] = expired_ingredient.quantity - expired_ingredient.consumed_quantity + quantity
+                    # st.session_state["all_ingredients"][f"ingredient_{st.session_state.n_raw_material_ingr - 1}grid_raw_material_ingr"] = 54
+                else:
+                    ingredient = models.get_semi_finished_product_by_id(ingredient_id)
+                    if ingredient is not None:
+                        st.session_state.n_semi_finished_prod_ingr += 1
+                        st.session_state.form_semi_finished_product["all_ingredients_semi_finished_product"][semi_finished_products_id_to_name[ingredient_id]] = quantity
+                        st.session_state[
+                            f"ingredient_{st.session_state.n_semi_finished_prod_ingr - 1}semi_finished_products_as_ingredients_id_to_name"] = \
+                            f"{ingredient.name} - {ingredient.batch_number}"
+                        st.session_state[
+                            f"ingredient_quantity_{st.session_state.n_semi_finished_prod_ingr - 1}semi_finished_products_as_ingredients_id_to_name"] = quantity
+                        try:
+                            st.session_state.max_quantity_value_semi_finished_products[
+                                f"{ingredient.name} - {ingredient.batch_number}"] += quantity  # restore the consumed quantity temporarily
+                        except KeyError:  # means that the ingredient was not in the list of ingredients since it is expired cosidering the fileter of today. But is is ok once we load a product with a production date since the ifletr wilb be done with the procuction date insead later in the code
+                            expired_ingredient = models.get_semi_finished_product_by_id(ingredient_id)
+                            if expired_ingredient:
+                                st.session_state.max_quantity_value_semi_finished_products[
+                                    f"{expired_ingredient.name} - {expired_ingredient.batch_number}"] = expired_ingredient.quantity - expired_ingredient.consumed_quantity + quantity
+                        # st.session_state["all_ingredients"][f"ingredient_{st.session_state.n_semi_finished_prod_ingr - 1}semi_finished_products_as_ingredients_id_to_name"] = 58
+
+    else:
+        del st.session_state.form_semi_finished_product
+        del st.session_state.semi_finished_product_batch_number
+        del st.session_state.semi_finished_product_quantity
+        del st.session_state.semi_finished_product_quantity_unit
+        # st.session_state.form_semi_finished_product["all_ingredients_semi_finished_product"] = {}
+        st.session_state.n_raw_material_ingr = 0
+        st.session_state.n_semi_finished_prod_ingr = 0
+        st.session_state.max_quantity_value_raw_material = None
+        st.session_state.max_quantity_value_semi_finished_products = None
+
+
 def main():
     # st.title(trad["software name"])
     st.title(trad["Semi-Finished Products"])
@@ -67,15 +146,31 @@ def main():
         trad["Data Search"],
     ])
 
+    with st.sidebar:
+        st.write(f'## {trad["Productions on hold"]}')
+        search_word = st.text_input(trad["Search"], key="semi_finished_product_search")
+        query = {
+            "$and": [
+                {"$or": [
+                    {"name": {"$regex": search_word, "$options": "i"}},
+                    {"batch_number": {"$regex": search_word, "$options": "i"}}
+                ]},
+                {"done": False}
+            ]
+        }
+        id_to_name, name_to_id, name_to_batch = utils.search_elemnts(models.SemiFinishedProduct, models.semi_finished_product_collection, query=query)
+        selection = st.radio(trad["Select Semi-finished product"], [None] + list(id_to_name.values())[:20], index=None, key="semi_finished_product_selection", on_change=load_selected)
 
+        # st.write(f'## {trad["All Semi-Finished Products"]}')
+        # search_word = st.text_input(trad["Search"], key="semi_finished_product_search_all")
+        # id_to_name, name_to_id, name_to_batch = utils.search_elemnts(models.SemiFinishedProduct, models.semi_finished_product_collection, search_word)
+        # selection = st.radio(trad["Select Semi-finished product"], [None] + list(id_to_name.values())[:20], index=None, key="semi_finished_product_selection_all", on_change=load_selected, args=("semi_finished_product_selection_all"))
     # Semi-Finished Products Tab
     with tab1:
         st.header(trad["Semi-Finished Products"])
         error = False
 
-        raw_materials = models.query_collection(models.RawMaterial, models.raw_material_collection, **{})
-        raw_materials_id_to_name = {raw_material.id: raw_material.name for raw_material in raw_materials}
-        raw_materials_name_to_id = {raw_material.name: raw_material.id for raw_material in raw_materials}
+
 
         name_placeholder = st.empty()
         date_placeholder = st.empty()
@@ -83,6 +178,7 @@ def main():
         batch_number_placeholder = st.empty()
         quantity_placeholder = st.empty()
         quantity_unit_placeholder = st.empty()
+        # done_placeholder = st.empty()
 
         st.write(f'## {trad["Ingredients"]}')
         st.write(f'#### {trad["Scan Barcode"]}')
@@ -101,7 +197,7 @@ def main():
         # n_raw_material_ingr = st.slider(trad['How many Raw Material?'], min_value=1, max_value=20)
         # n_semi_finished_prod_ingr = st.slider(trad['How many Semi-Finished Products?'], min_value=1, max_value=20)
 
-        scansioned_bar_code = scan_barcode_placeholder.text_input(trad["Scan Barcode"], on_change=manage_barcode_reader, args=(n_semi_finished_prod_ingr_placeholder,), key="scansioned_bar_code")
+        scansioned_bar_code = scan_barcode_placeholder.text_input(trad["Scan Barcode"], on_change=manage_barcode_reader, key="scansioned_bar_code")
 
         n_raw_material_ingr = n_raw_material_ingr_placeholder.number_input(trad['How many Raw Material?'], min_value=0, max_value=max_n_ingredients, step=1, key="n_raw_material_ingr")
         grid_raw_material_ingr = grid_raw_material_ingr_placeholder.columns(2)
@@ -109,10 +205,10 @@ def main():
         n_semi_finished_prod_ingr = n_semi_finished_prod_ingr_placeholder.number_input(trad['How many Semi-Finished Products?'], min_value=0, max_value=max_n_ingredients, step=1, key="n_semi_finished_prod_ingr")
         grid_semi_finished_prod_ingr = grid_semi_finished_prod_ingr_placeholder.columns(2)
 
-        raw_material_ingredients_placeholders = [grid_raw_material_ingr[0].empty() for _ in range(max_n_ingredients)] # column 1
-        raw_materials_ingredient_quantity_placeholders = [grid_raw_material_ingr[1].empty() for _ in range(max_n_ingredients)] # column 2
-        semi_finished_products_as_ingredients_placeholders = [grid_semi_finished_prod_ingr[0].empty() for _ in range(max_n_ingredients)] # column 1
-        semi_finished_products_as_ingredients_quantity_placeholders = [grid_semi_finished_prod_ingr[1].empty() for _ in range(max_n_ingredients)] # column 2
+        raw_material_ingredients_placeholders = [grid_raw_material_ingr[0].empty() for _ in range(max_n_ingredients)]  # column 1
+        raw_materials_ingredient_quantity_placeholders = [grid_raw_material_ingr[1].empty() for _ in range(max_n_ingredients)]  # column 2
+        semi_finished_products_as_ingredients_placeholders = [grid_semi_finished_prod_ingr[0].empty() for _ in range(max_n_ingredients)]  # column 1
+        semi_finished_products_as_ingredients_quantity_placeholders = [grid_semi_finished_prod_ingr[1].empty() for _ in range(max_n_ingredients)]  # column 2
 
         semi_finished_products = models.query_collection(models.SemiFinishedProduct, models.semi_finished_product_collection, **{})
 
@@ -146,59 +242,65 @@ def main():
         semi_finished_products_as_ingredients_name_to_id = {f"{semi_finished_product.name} - {semi_finished_product.batch_number}": semi_finished_product.id for
                                              semi_finished_product in semi_finished_products_as_ingredients}
 
-        raw_materials = models.query_collection(models.RawMaterial, models.raw_material_collection, **{
+        raw_materials_as_ingredients = models.query_collection(models.RawMaterial, models.raw_material_collection, **{
                 "is_finished": False,
                 "expiration_date": {"$gte": prod_date if prod_date is not None else datetime.now()}
             })
-        raw_materials_id_to_name = {raw_material.id: f"{raw_material.name} - {raw_material.batch_number}" for raw_material in raw_materials}
-        raw_materials_name_to_id = {f"{raw_material.name} - {raw_material.batch_number}": raw_material.id for raw_material in raw_materials}
+        raw_materials_as_ingredients_id_to_name = {raw_material.id: f"{raw_material.name} - {raw_material.batch_number}" for raw_material in raw_materials_as_ingredients}
+        raw_materials_as_ingredients_name_to_id = {f"{raw_material.name} - {raw_material.batch_number}": raw_material.id for raw_material in raw_materials_as_ingredients}
 
-        max_quantity_value_raw_material = dict()
-        for raw_material in raw_materials:
-            v = raw_material.quantity - raw_material.consumed_quantity
-            v = int(v) if raw_material.quantity_unit in [models.QuantityEnum.unit] else float(v)
-            max_quantity_value_raw_material[f"{raw_material.name} - {raw_material.batch_number}"] = v
+        if st.session_state.get("max_quantity_value_raw_material") is None:
+            st.session_state.max_quantity_value_raw_material = dict()
+            for raw_material in raw_materials_as_ingredients:
+                v = raw_material.quantity - raw_material.consumed_quantity
+                v = int(v) if raw_material.quantity_unit in [models.QuantityEnum.unit] else float(v)
+                st.session_state.max_quantity_value_raw_material[f"{raw_material.name} - {raw_material.batch_number}"] = v
+        if st.session_state.get("max_quantity_value_semi_finished_products") is None:
+            st.session_state.max_quantity_value_semi_finished_products = dict()
+            for semi_finished_product in semi_finished_products_as_ingredients:
+                v = semi_finished_product.quantity - semi_finished_product.consumed_quantity
+                v = int(v) if semi_finished_product.quantity_unit in [models.QuantityEnum.unit] else float(v)
+                st.session_state.max_quantity_value_semi_finished_products[f"{semi_finished_product.name} - {semi_finished_product.batch_number}"] = v
 
-        max_quantity_value_semi_finished_products = dict()
-        for semi_finished_product in semi_finished_products_as_ingredients:
-            v = semi_finished_product.quantity - semi_finished_product.consumed_quantity
-            v = int(v) if semi_finished_product.quantity_unit in [models.QuantityEnum.unit] else float(v)
-            max_quantity_value_semi_finished_products[f"{semi_finished_product.name} - {semi_finished_product.batch_number}"] = v
-            # else:
-            #     pass
 
         expiration_date = expiration_date_placeholder.date_input(trad["Expiration Date"], key="semi_finished_product_expiration_date", format=lang.datetime_format, value=st.session_state.get("form_semi_finished_product", {}).get("expiration_date", None))
-        if prod_date is not None:
-            bn = f'{prod_date.strftime("%y%m%d")}{str(uuid4().int)[:4]}'
-        else:
-            bn = None
-        st.session_state["semi_finished_product_batch_number"] = bn
+        if "semi_finished_product_batch_number" not in st.session_state:
+            if prod_date is not None and selection is None:
+                bn = f'{prod_date.strftime("%y%m%d")}{str(uuid4().int)[:4]}'
+            else:
+                bn = None
+            st.session_state["semi_finished_product_batch_number"] = bn
         batch_number = batch_number_placeholder.text_input(trad["batch number"],  key="semi_finished_product_batch_number", disabled=True)#st.session_state.get("form_semi_finished_product", {}).get("batch_number", None))
 
-        quantity = quantity_placeholder.number_input(trad["Quantity"], key="semi_finished_product_quantity", value=st.session_state.get("form_semi_finished_product", {}).get("quantity", None))
+        quantity = quantity_placeholder.number_input(trad["Quantity"], key="semi_finished_product_quantity", value=st.session_state.get("form_semi_finished_product", {}).get("quantity", None), min_value=.0, step=1.)
         try:
             index = list(models.QuantityEnum).index(st.session_state.get("form_semi_finished_product", {}).get("quantity_unit", None))
         except ValueError:
             index = None
-        quantity_unit = quantity_unit_placeholder.selectbox(trad["Unit"], models.QuantityEnum.__members__.keys(), index=index, key="semi_finished_product_quantity_unit")
-
+        try:
+            quantity_unit = quantity_unit_placeholder.selectbox(trad["Unit"], list(models.QuantityEnum.__members__.keys()), index=index, key="semi_finished_product_quantity_unit")
+        except Exception as e:
+            raise e
 
         # Function to create a row of widgets (with row number input to assure unique keys)
         def add_ingr_placeholder(row, options, key, placeholder, max_quantity_value=None, index=None, value=None):
             # i = st.selectbox(trad["Ingredient"], options, index=None, key=f'ingredient_{row}{id(grid)}')
-            st.session_state["all_ingredients"][f"ingredient_{row}{key}"] = placeholder[0][row].selectbox(
-                f'{trad["Ingredient"]} {row+1}',
-                options,
-                index=index,
-                key=f"ingredient_{row}{key}",
-            )
+            try:
+                st.session_state["all_ingredients"][f"ingredient_{row}{key}"] = placeholder[0][row].selectbox(
+                    f'{trad["Ingredient"]} {row+1}',
+                    options,
+                    index=index,
+                    key=f"ingredient_{row}{key}",
+                )
+            except Exception as e:
+                print(e)
             max_value = max_quantity_value.get(st.session_state["all_ingredients"][f"ingredient_{row}{key}"])
             type_ = type(max_value) if max_value is not None else int
             st.session_state["all_ingredients"][f"ingredient_quantity_{row}{key}"] = \
             placeholder[1][row].number_input(
-                trad["Quantity"], step=type_(1), min_value=type_(0), max_value=max_value, #max value non funziona
+                trad["Quantity"], step=type_(1), min_value=type_(0), max_value=max_value,
                 key=f"ingredient_quantity_{row}{key}",
-                value=value, placeholder=f"{max_value} {trad['available']}")
+                value=value, placeholder=f"{max_value} {trad['available']}") # todo impostalo correttamente quando fai load_selected
 
         # def generate_ingr_elements(max_quantity_value_raw_material):
         # Loop to create rows of input widgets
@@ -206,18 +308,12 @@ def main():
             st.session_state["all_ingredients"] = {}
 
         for r in range(n_raw_material_ingr):
-            # if st.session_state["all_ingredients"].get(f'ingredient_{r}{id(grid_raw_material_ingr)}', 'None') == 'None':
-            # if st.session_state.get(f'ingredient_{r}{id(grid_raw_material_ingr)}') is None:
-            # add_ingr(r, grid_raw_material_ingr, list(raw_materials_id_to_name.values()), key="grid_raw_material_ingr", max_quantity_value=max_quantity_value_raw_material, placeholder=raw_material_ingredients_placeholders[r])
-            add_ingr_placeholder(r, list(raw_materials_id_to_name.values()), key="grid_raw_material_ingr", max_quantity_value=max_quantity_value_raw_material, placeholder=(raw_material_ingredients_placeholders, raw_materials_ingredient_quantity_placeholders))
+            add_ingr_placeholder(r, list(raw_materials_as_ingredients_id_to_name.values()), key="grid_raw_material_ingr", max_quantity_value=st.session_state.max_quantity_value_raw_material, placeholder=(raw_material_ingredients_placeholders, raw_materials_ingredient_quantity_placeholders))
 
         for r in range(n_semi_finished_prod_ingr):
-            # if st.session_state["all_ingredients"].get(f'ingredient_{r}{id(grid_semi_finished_prod_ingr)}', 'None') == 'None':
-            # if st.session_state.get(f'ingredient_{r}{id(grid_semi_finished_prod_ingr)}') is None:
-            # add_ingr(r, grid_semi_finished_prod_ingr, list(semi_finished_products_as_ingredients_id_to_name.values()), key="semi_finished_products_as_ingredients_id_to_name", max_quantity_value=max_quantity_value_semi_finished_products, placeholder=semi_finished_products_as_ingredients_placeholders[r])
-            add_ingr_placeholder(r, list(semi_finished_products_as_ingredients_id_to_name.values()), key="semi_finished_products_as_ingredients_id_to_name", max_quantity_value=max_quantity_value_semi_finished_products, placeholder=(semi_finished_products_as_ingredients_placeholders, semi_finished_products_as_ingredients_quantity_placeholders))
+            add_ingr_placeholder(r, list(semi_finished_products_as_ingredients_id_to_name.values()), key="semi_finished_products_as_ingredients_id_to_name", max_quantity_value=st.session_state.max_quantity_value_semi_finished_products, placeholder=(semi_finished_products_as_ingredients_placeholders, semi_finished_products_as_ingredients_quantity_placeholders))
 
-        # generate_ingr_elements(max_quantity_value_raw_material)
+        # done = done_placeholder.checkbox(trad["Done"], key="semi_finished_product_done")
         # --------------------------------------------------------------
         st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -236,16 +332,20 @@ def main():
             with col1:
                 pass
             with col2:
+                submit = st.button(trad["Save progress"], key="add_semi_finished_product")
+            with col3:
                 pass
             with col4:
-                pass
+                close_prod_submit = st.button(trad["Close Production"], key="close_production")
             with col5:
                 pass
-            with col3: # center the button in the middle column
-                submit = st.button(trad["Done"], key="add_semi_finished_product")
             # submit = st.button(trad["Done"], key="add_semi_finished_product")
             # ----- fine definizione pulsante centrato e verde
-            if submit:
+            if submit or close_prod_submit:
+                done = False
+                if close_prod_submit:
+                    done = True
+
                 raw_ingredients = {}
                 semi_ingredients = {}
                 try:
@@ -260,7 +360,7 @@ def main():
                         if i is not None:
                             semi_ingredients[i] = q
                     del st.session_state["all_ingredients"]
-                    all_ingredients1 = {raw_materials_name_to_id[ingredient]: quantity for ingredient, quantity in raw_ingredients.items()}
+                    all_ingredients1 = {raw_materials_as_ingredients_name_to_id[ingredient]: quantity for ingredient, quantity in raw_ingredients.items()}
                     all_ingredients2 = {semi_finished_products_as_ingredients_name_to_id[ingredient]: quantity for ingredient, quantity in semi_ingredients.items()}
                     all_ingredients = all_ingredients1 | all_ingredients2
 
@@ -278,10 +378,11 @@ def main():
                         batch_number=batch_number,
                         quantity=quantity,
                         quantity_unit=quantity_unit,
-                        ingredients=all_ingredients
+                        ingredients=all_ingredients,
+                        done=done
                     )
-                    instance.insert()
-                    def update_quantity(ingredient_id, quantity, get_id_function):
+                    instance.insert(update=True if not done or close_prod_submit else False) # consento l'update solo se il prodotto non è finito
+                    def update_quantity(ingredient_id, quantity, get_id_function): # todo non si deve cambiare la quantità per gli ingredienti già inseriti e non modificati
                         ing = get_id_function(ingredient_id)
                         ing.consumed_quantity += quantity
                         assert ing.consumed_quantity <= ing.quantity # should never happen because max available quantity is checked in the form at input time
