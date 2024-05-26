@@ -761,6 +761,17 @@ t = {
         "ko": "진행 저장",
         "zh": "保存进度",
     },
+    "Select Semi-finished product on hold": {
+        "en": "Select Semi-finished product on hold",
+        "es": "Seleccionar producto semielaborado en espera",
+        "fr": "Sélectionner le produit semi-fini en attente",
+        "de": "Halbfertiges Produkt auswählen",
+        "it": "Seleziona prodotto semilavorato in sospeso",
+        "pt": "Selecionar produto semi-acabado em espera",
+        "ja": "保留中の半製品を選択",
+        "ko": "보류 중인 준설제 선택",
+        "zh": "选择待处理的半成品",
+    },
 }
 def get_translations(lang_choice="en"):
     trad = Translations(t, lang_choice)

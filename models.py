@@ -323,11 +323,13 @@ def check_db_integrity():
     raw_materials = list(raw_material_collection.find())
     l = len(raw_materials)
     for i, raw_material in enumerate(raw_materials):
-        time.sleep(0.1)
         my_bar.progress(100//l * (i+1), text=progress_text)
         semi_finished_products = get_semi_finished_products_that_uses_an_ingredient(raw_material['_id'])
         # compute the sum of quantity used in semi-finished products
-        quantity_used = sum([semi_finished_product['ingredients'][raw_material['_id']] for semi_finished_product in semi_finished_products])
+        try:
+            quantity_used = sum([semi_finished_product.dict()['ingredients'][str(raw_material['_id'])] for semi_finished_product in semi_finished_products])
+        except KeyError as e:
+            print(f"Error: the quantity of raw material {raw_material['name']} is greater than the quantity used in semi-finished products")
         if raw_material['quantity'] < quantity_used:
             print(f"Error: the quantity of raw material {raw_material['name']} is greater than the quantity used in semi-finished products")
             final_error_table.append({'raw_material': raw_material['name'], 'quantity': raw_material['quantity'], 'quantity_used': quantity_used})
@@ -335,7 +337,6 @@ def check_db_integrity():
     semi_finished_products = list(semi_finished_product_collection.find())
     l = len(semi_finished_products)
     for i, semi_finished_product in enumerate(semi_finished_products):
-        time.sleep(0.1)
         my_bar.progress(100//l * (i+1), text=progress_text)
         # check all ingredients exist
         for ingredient in semi_finished_product['ingredients']:
