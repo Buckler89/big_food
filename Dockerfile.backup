@@ -1,7 +1,14 @@
 FROM mongo:5.0.26
 RUN apt-get update && apt-get install -y cron
+RUN wget https://mega.nz/linux/repo/xUbuntu_20.04/amd64/megacmd-xUbuntu_20.04_amd64.deb \
+    && apt-get install "$PWD/megacmd-xUbuntu_20.04_amd64.deb" \
+    && rm megacmd-xUbuntu_20.04_amd64.deb
 COPY backup.sh /backup.sh
 RUN chmod +x /backup.sh
+# RUN mega-login $MEGA_EMAIL $MEGA_PASSWORD
+RUN mega-login livafrittaap@gmail.com AbbiFEDE2020!
+RUN mega-mkdir /backup/big_food && mega-backup /backup/ /backup/big_food --period="0 0 4 * * *" --num-backups=30
+
 # Setup cron job
 RUN (crontab -l ; echo "0 0 * * * /backup.sh") | crontab
 CMD ["cron", "-f"]

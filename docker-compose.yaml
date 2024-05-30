@@ -46,6 +46,20 @@ services:
       - mongo
     restart: always
 
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    image: ghcr.io/buckler89/mongo-bk:latest
+    volumes:
+      - ./mongo_backups:/backup
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+    restart: always
+
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
