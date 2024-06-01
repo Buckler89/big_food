@@ -1,6 +1,6 @@
 import pymongo
 from datetime import datetime
-from typing import Any, List, Optional, Union, Self, Dict
+from typing import Any, List, Optional, Union, Self, Dict, Mapping
 from pydantic import BaseModel, ValidationError, model_validator, PrivateAttr, Field
 from bson.objectid import ObjectId
 from pydantic_mongo import AbstractRepository, PydanticObjectId
@@ -201,9 +201,11 @@ def get_raw_material_by_id(raw_material_id: Union[str, ObjectId]) -> Union[RawMa
     return None
 
 
-def get_raw_material_by_batch_number(batch_number: str) -> Union[RawMaterial, None]:
+def get_raw_material_by_batch_number(batch_number: str, as_dict=False) -> Mapping[str, Any] | RawMaterial | None:
     raw_material = raw_material_collection.find_one({'batch_number': batch_number})
     if raw_material:
+        if as_dict:
+            return raw_material
         return RawMaterial(**raw_material)
     return None
 
@@ -215,23 +217,34 @@ def get_semi_finished_product_by_id(semi_finished_product_id: Union[str, ObjectI
     return None
 
 
-def get_semi_finished_product_by_batch_number(batch_number: str) -> Union[SemiFinishedProduct, None]:
+def get_semi_finished_product_by_batch_number(batch_number: str, as_dict=False) -> Mapping[str, Any] | SemiFinishedProduct | None:
     semi_finished_product = semi_finished_product_collection.find_one({'batch_number': batch_number})
     if semi_finished_product:
+        if as_dict:
+            return semi_finished_product
         return SemiFinishedProduct(**semi_finished_product)
     return None
 
 
-def get_all_suppliers() -> List[Supplier]:
-    return [Supplier(**supplier) for supplier in supplier_collection.find()]
+def get_all_suppliers(as_dict=False) -> List[Supplier]:
+    all_data = supplier_collection.find()
+    if as_dict:
+        return list(all_data)
+    return [Supplier(**d) for d in all_data]
 
 
-def get_all_raw_materials() -> List[RawMaterial]:
-    return [RawMaterial(**raw_material) for raw_material in raw_material_collection.find()]
+def get_all_raw_materials(as_dict=False) -> List[RawMaterial]:
+    all_data = raw_material_collection.find()
+    if as_dict:
+        return list(all_data)
+    return [RawMaterial(**d) for d in all_data]
 
 
-def get_all_semi_finished_products() -> List[SemiFinishedProduct]:
-    return [SemiFinishedProduct(**semi_finished_product) for semi_finished_product in semi_finished_product_collection.find()]
+def get_all_semi_finished_products(as_dict=False) -> List[SemiFinishedProduct]:
+    all_data = semi_finished_product_collection.find()
+    if as_dict:
+        return list(all_data)
+    return [SemiFinishedProduct(**d) for d in all_data]
 
 
 def delete_supplier_by_id(supplier_id: str) -> bool:
@@ -308,7 +321,40 @@ def get_semi_finished_products_that_uses_an_ingredient(ingredient: str) -> List[
     result = [semi_finished_product for semi_finished_product in semi_finished_products if ingredient in semi_finished_product.ingredients]
     return result
 
-def check_db_integrity():
+def check_quantity_of_raw_material_used_in_semi_finished_products(raw_material: RawMaterial, do_fix=False):
+    semi_finished_products = get_semi_finished_products_that_uses_an_ingredient(raw_material['_id'])
+    # compute the sum of quantity used in semi-finished products
+    try:
+        quantity_actually_used = sum(
+            [semi_finished_product.dict()['ingredients'][str(raw_material['_id'])] for semi_finished_product in
+             semi_finished_products])
+    except KeyError as e:
+        print(f"Error: the raw material {raw_material['name']} is not used in any semi-finished product")
+        raise e
+    if raw_material['consumed_quantity'] != quantity_actually_used:
+        print(
+            f"Error: the quantity used in semi-finished products  {raw_material['name']} is different from the quantity raw material itself")
+        r = {
+                'raw_material': raw_material['name'],
+                'quantity': raw_material['quantity'],
+                'quantity_actually_used_in_semi-products': quantity_actually_used,
+                'consumed_quantity': raw_material['consumed_quantity']
+        }
+        if do_fix:
+            is_finished = raw_material['quantity'] <= quantity_actually_used
+            raw_material_collection.update_one({'_id': raw_material['_id']}, {'$set': {'consumed_quantity': quantity_actually_used, 'is_finished': is_finished}})
+
+    # if raw_material['quantity'] > quantity_actually_used:
+    #     print(
+    #         f"Error: the quantity used in semi-finished products  {raw_material['name']} is greater than the quantity raw material itself")
+    #     r = {'raw_material': raw_material['name'], 'quantity': raw_material['quantity'],
+    #                               'quantity_used': quantity_used}
+    # elif raw_material['quantity'] < quantity_used:
+    else:
+        r = None
+    return r
+
+def check_db_integrity(do_fix=False):
     """
     Check the integrity of the database wrt the quantity of raw materials and semi-finished products
     Procedure to be implemented
@@ -317,22 +363,26 @@ def check_db_integrity():
     import streamlit as st
     import time
     progress_text = "Operation in progress. Please wait."
-    my_bar = st.progress(0, progress_text)
+    my_bar = st.progress(0, text=progress_text)
     final_error_table = []
     # check the quantity of raw materials is greater than the quantity used in semi-finished products
-    raw_materials = list(raw_material_collection.find())
+    raw_materials = get_all_raw_materials(as_dict=True)
     l = len(raw_materials)
     for i, raw_material in enumerate(raw_materials):
         my_bar.progress(100//l * (i+1), text=progress_text)
-        semi_finished_products = get_semi_finished_products_that_uses_an_ingredient(raw_material['_id'])
-        # compute the sum of quantity used in semi-finished products
-        try:
-            quantity_used = sum([semi_finished_product.dict()['ingredients'][str(raw_material['_id'])] for semi_finished_product in semi_finished_products])
-        except KeyError as e:
-            print(f"Error: the quantity of raw material {raw_material['name']} is greater than the quantity used in semi-finished products")
-        if raw_material['quantity'] < quantity_used:
-            print(f"Error: the quantity of raw material {raw_material['name']} is greater than the quantity used in semi-finished products")
-            final_error_table.append({'raw_material': raw_material['name'], 'quantity': raw_material['quantity'], 'quantity_used': quantity_used})
+        # semi_finished_products = get_semi_finished_products_that_uses_an_ingredient(raw_material['_id'])
+        # # compute the sum of quantity used in semi-finished products
+        # try:
+        #     quantity_used = sum([semi_finished_product.dict()['ingredients'][str(raw_material['_id'])] for semi_finished_product in semi_finished_products])
+        # except KeyError as e:
+        #     print(f"Error: the raw material {raw_material['name']} is not used in any semi-finished product")
+        #     raise e
+        # if raw_material['quantity'] < quantity_used:
+        #     print(f"Error: the quantity of raw material {raw_material['name']} is greater than the quantity used in semi-finished products")
+        #     final_error_table.append({'raw_material': raw_material['name'], 'quantity': raw_material['quantity'], 'quantity_used': quantity_used})
+        r = check_quantity_of_raw_material_used_in_semi_finished_products(raw_material, do_fix=do_fix)# get_raw_material_by_batch_number("306315", as_dict=True)
+        if r:
+            final_error_table.append(r)
     my_bar.progress(0, text=progress_text)
     semi_finished_products = list(semi_finished_product_collection.find())
     l = len(semi_finished_products)
