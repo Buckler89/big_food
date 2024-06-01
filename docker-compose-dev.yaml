@@ -2,24 +2,20 @@ services:
 
   # service configuration for mongo database.
   mongo:
+    restart: no
 
-    restart: never
-#  backup:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.backup
-#    volumes:
-#      - ./mongo_backups:/backup
-#    depends_on:
-#      - mongo
-#  # streamlit app configuration
+  backup:
+    restart: no
+
+  # streamlit app configuration
   app:
-    restart: never
+    command: streamlit run Home.py --server.port 8501
+    restart: no
 
   mongo-express:
-    restart: never
+    restart: no
 
-  watchtower:
-    entrypoint: sleep 86400
-    command: sleep 86400
-    restart: never
+#  watchtower:
+#    entrypoint: sleep 86400
+#    command: sleep 86400
+#    restart: never

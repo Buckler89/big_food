@@ -1,7 +1,39 @@
 FROM mongo:5.0.26
-RUN apt-get update && apt-get install -y cron
+RUN apt-get update && apt-get install -y cron wget
+#RUN wget https://mega.nz/linux/repo/xUbuntu_20.04/amd64/megacmd-xUbuntu_20.04_amd64.deb \
+#    && apt-get install "$PWD/megacmd-xUbuntu_20.04_amd64.deb" \
+#    && rm megacmd-xUbuntu_20.04_amd64.deb
+RUN wget https://mega.nz/linux/repo/xUbuntu_20.04/amd64/megacmd-xUbuntu_20.04_amd64.deb \
+    && dpkg -i megacmd-xUbuntu_20.04_amd64.deb || true \
+    && apt-get -fy install \
+    && rm megacmd-xUbuntu_20.04_amd64.deb
+
 COPY backup.sh /backup.sh
 RUN chmod +x /backup.sh
+ARG MEGA_EMAIL
+ARG MEGA_PASSWORD
+RUN mega-login $MEGA_EMAIL $MEGA_PASSWORD
+
+FROM mongo:5.0.26
+RUN apt-get update && apt-get install -y cron wget
+RUN wget https://mega.nz/linux/repo/xUbuntu_20.04/amd64/megacmd-xUbuntu_20.04_amd64.deb \
+    && dpkg -i megacmd-xUbuntu_20.04_amd64.deb || true \
+    && apt-get -fy install \
+    && rm megacmd-xUbuntu_20.04_amd64.deb
+
+COPY backup.sh /backup.sh
+RUN chmod +x /backup.sh
+
+RUN mega-login livafrittaap@gmail.com AbbiFEDE2020! && \
+    if [ $? -eq 0 ]; then \
+        mkdir /backup && \
+        #mega-mkdir /backup/big_food && \
+        mega-backup /backup/ /backup/big_food --period="0 0 4 * * *" --num-backups=30; \
+    else \
+        echo "Mega login failed"; \
+        exit 1; \
+    fi
+
 # Setup cron job
 RUN (crontab -l ; echo "0 0 * * * /backup.sh") | crontab
 CMD ["cron", "-f"]

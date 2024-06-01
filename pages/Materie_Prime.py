@@ -4,7 +4,7 @@ from bson.objectid import ObjectId
 import models
 import lang
 from uuid import uuid4
-
+from streamlit_js_eval import streamlit_js_eval
 from utils import dataframe_with_selections, manage_barcode
 # Initialization
 trad = lang.get_translations(lang.lang_choice)
@@ -44,6 +44,9 @@ def main():
         price_placeholder = st.empty()
         submit_placeholder = st.empty()
 
+        if st.button(trad["Clear Form"]):
+            streamlit_js_eval(js_expressions="parent.window.location.reload()")
+
         # if 'name' not in st.session_state:
         #     st.session_state.name = None
         # if 'supplier_name' not in st.session_state:
@@ -65,9 +68,9 @@ def main():
             expiration_date = expiration_date_placeholder.date_input(trad["Expiration Date"], format=lang.datetime_format)
             batch_number = batch_number_placeholder.text_input(trad["Supplier batch number"])
             document_number = document_number_placeholder.text_input(trad["Document Number"])
-            quantity = quantity_placeholder.number_input(trad["Quantity"])
+            quantity = quantity_placeholder.number_input(trad["Quantity"], min_value=0.0001, max_value=2000.0, format="%.4f", step=1.00, value=None)
             quantity_unit = quantity_unit_placeholder.selectbox(trad["Unit"], models.QuantityEnum.__members__.keys(), index=None)
-            price = price_placeholder.number_input(trad["Price"], min_value=0.0, format="%.2f")
+            price = price_placeholder.number_input(trad["Price"], min_value=0.01, step=1.00, format="%.2f", value=None)
             submit = submit_placeholder.button(trad["Add Raw Material"])
             return name, supplier_name, date, expiration_date, batch_number, document_number, quantity, quantity_unit, price, submit
 

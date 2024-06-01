@@ -12,20 +12,15 @@ services:
       - ./mongo_backups:/backup
 #    command: [ "mongod", "--bind_ip_all" ]
     restart: always
-#  backup:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.backup
-#    volumes:
-#      - ./mongo_backups:/backup
-#    depends_on:
-#      - mongo
-#  # streamlit app configuration
+
+  # streamlit app configuration
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/buckler89/big_food-app:latest
+      args:
+        - NGROK_AUTH_TOKEN=${NGROK_AUTH_TOKEN}
+    image: ghcr.io/buckler89/big_food/big_food-app:latest
     container_name: big_food-app
     ports:
       - "8501:8501"
@@ -52,9 +47,28 @@ services:
       - mongo
     restart: always
 
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+      args:
+        - MEGA_EMAIL=${MEGA_EMAIL}
+        - MEGA_PASSWORD=${MEGA_PASSWORD}
+    image: ghcr.io/buckler89/big_food/mongo-bk:latest
+    volumes:
+      - ./mongo_backups:/backup
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+    restart: always
+
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: big_food-app
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=30

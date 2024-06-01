@@ -1,8 +1,6 @@
 import streamlit as st
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Big Food", page_icon="https://www.livafritta.it/wp-content/uploads/2019/12/cropped-favicon-04-32x32.png", layout="wide")
 import lang
-import models
-import numpy as np
 
 # Initialization
 trad = lang.get_translations(lang.lang_choice)
@@ -13,7 +11,7 @@ st.title(trad["software name"])
 st.balloons()
 # st.success("This is a success message")
 # st.error("This is an error message")
-st.image("https://www.livafritta.it/wp-content/uploads/2020/06/slide-iniziale-desktop_c.jpg")
+st.image("https://www.livafritta.it/wp-content/uploads/2020/06/slide-iniziale-desktop_c.jpg", width=600)
 st.page_link("Home.py", label=trad["Home"], icon="🏠")
 st.page_link("pages/Prodotti_e_Semilavorati.py", label=trad["Products and Semi-finished Products"], icon="🍞")
 st.page_link("pages/Materie_Prime.py", label=trad["Raw Materials"], icon="🌾")

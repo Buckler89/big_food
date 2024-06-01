@@ -16,10 +16,7 @@ RUN apt-get update && apt-get install -y \
 	| tee /etc/apt/sources.list.d/ngrok.list \
 	&& apt update \
 	&& apt install ngrok \
-    && rm -rf /var/lib/apt/lists/* \
-    #&& ngrok config add-authtoken 2U3fVfwZmqzhGfulgFtlvAxG41H_7486A8292PiNpatk3Gd9a # droghini.diego@gmail.com \
-    && ngrok config add-authtoken 2gKsiGQOVdfVTRPleuPDAC5mDnH_3ZMr6WGJTxgmcjnV9HW4e # livafrittaap@gmail.com
-
+    && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml poetry.lock ./
 # install poetry
@@ -31,7 +28,12 @@ RUN pip install poetry \
 #ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages
 # Verify Streamlit installation
 #RUN streamlit --version
+
+ARG NGROK_AUTH_TOKEN
+RUN ngrok config add-authtoken $NGROK_AUTH_TOKEN
+
 # copy the context into the image (esclude the files in .dockerignore)
+
 COPY ./ ./
 # expose the port
 EXPOSE 8501
