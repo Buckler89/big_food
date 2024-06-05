@@ -33,6 +33,8 @@ semi_finished_products_as_ingredients_name_to_id = {
 
 def manage_barcode_reader():
     barcode = st.session_state.scansioned_bar_code
+    # fix the barcode since the barcode reader is not perfect
+    barcode = barcode.strip().replace("N-A'", "N/A-")#.replace("-", "/").replace("'", "-")
     print(barcode)
     # Aggiorna il valore di un altro widget tramite session_state
     if barcode:
@@ -46,6 +48,11 @@ def manage_barcode_reader():
             try:
                 ingredient = models.get_raw_material_by_batch_number(barcode)
                 if ingredient:
+                    # check if ingredient is expired and if it is expired, do not add it to the list of ingredients (decrease the counter of ingredients)
+                    if ingredient.expiration_date < datetime.now():
+                        st.error(f"Ingredient with batch number {barcode} is expired")
+                        st.session_state.n_raw_material_ingr -= 1 # undo the increment
+
 
                     # add the ingredient to the list of ingredients
                     # if the ingredient is already in the list, increment the quantity
@@ -56,6 +63,10 @@ def manage_barcode_reader():
                 else:
                     ingredient = models.get_semi_finished_product_by_batch_number(barcode)
                     if ingredient:
+                        # check if ingredient is expired and if it is expired, do not add it to the list of ingredients (decrease the counter of ingredients)
+                        if ingredient.expiration_date < datetime.now():
+                            st.error(f"Ingredient with batch number {barcode} is expired")
+                            st.session_state.n_raw_material_ingr -= 1  # undo the increment
                         # add the ingredient to the list of ingredients
                         # if the ingredient is already in the list, increment the quantity
                         # if the ingredient is not in the list, add it to the list
@@ -304,6 +315,8 @@ def main():
                     index=index,
                     key=f"ingredient_{row}{key}",
                 )
+            except ValueError as e:
+                st.error(f"Error adding ingredient: the ingredient does not exist or it is expired. {e}")
             except Exception as e:
                 raise e
             max_value = max_quantity_value.get(st.session_state["all_ingredients"][f"ingredient_{row}{key}"])

@@ -8,18 +8,28 @@ from pymongo.collection import Collection
 import pandas as pd
 from enum import Enum, IntEnum
 import os
+import streamlit as st
 
 
 mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-myclient = pymongo.MongoClient(mongo_uri)
-mydb = myclient['food_traceability']
 semi_finished_products_collection_name = 'semi_finished_products'
 suppliers_collection_name = 'suppliers'
 raw_materials_collection_name = 'raw_materials'
 
-supplier_collection = mydb[suppliers_collection_name]
-raw_material_collection = mydb[raw_materials_collection_name]
-semi_finished_product_collection = mydb[semi_finished_products_collection_name]
+@st.cache_resource
+def get_db():
+
+    myclient = pymongo.MongoClient(mongo_uri)
+    mydb = myclient['food_traceability']
+
+
+    supplier_collection = mydb[suppliers_collection_name]
+    raw_material_collection = mydb[raw_materials_collection_name]
+    semi_finished_product_collection = mydb[semi_finished_products_collection_name]
+    return myclient, mydb, supplier_collection, raw_material_collection, semi_finished_product_collection
+
+
+myclient, mydb, supplier_collection, raw_material_collection, semi_finished_product_collection = get_db()
 
 class QuantityEnum(str, Enum):
     kg = 'kg'
